@@ -1,0 +1,51 @@
+name: Build lists
+
+on:
+  schedule:
+    # Daily, at an off-peak minute.
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build
+  cancel-in-progress: false
+
+env:
+  # AdGuard's Safari converter, pinned to a release and its published checksum.
+  CONVERTER_URL: https://github.com/AdguardTeam/SafariConverterLib/releases/download/v4.3.0/ConverterTool
+  CONVERTER_SHA256: 6687be9f1a77abd5299299086c5fbffd0d1b5baec755eb4808aa2f53e275d3c0
+  CONVERTER_VERSION: 4.3.0
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch converter
+        run: |
+          curl -fsSL --retry 3 -o ConverterTool "$CONVERTER_URL"
+          echo "$CONVERTER_SHA256  ConverterTool" | shasum -a 256 -c -
+          chmod +x ConverterTool
+
+      - name: Fetch filter lists
+        run: |
+          mkdir -p sources
+          curl -fsSL --retry 3 -o sources/easylist.txt https://easylist.to/easylist/easylist.txt
+          curl -fsSL --retry 3 -o sources/easyprivacy.txt https://easylist.to/easylist/easyprivacy.txt
+
+      - name: Convert
+        run: scripts/build.sh
+
+      - name: Sign manifest
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        run: swift scripts/sign.swift dist/manifest.json > dist/manifest.sig
+
+      - name: Publish if changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/publish.sh
