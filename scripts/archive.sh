@@ -12,7 +12,7 @@ print("\n".join("- {}: {:,} rules".format(l["source"], l["rules"]) for l in mani
 PY
 )
 
-gh release create "lists-$version" dist/manifest.json dist/manifest.sig dist/ads.json dist/privacy.json \
+gh release create "lists-$version" dist/manifest.json dist/manifest.sig dist/ads.json dist/privacy.json dist/cookies.json \
   --title "Lists $version" \
   --notes "$summary"
 

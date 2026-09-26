@@ -64,6 +64,7 @@ jobs:
           mkdir -p sources
           curl -fsSL --retry 3 -o sources/easylist.txt https://easylist.to/easylist/easylist.txt
           curl -fsSL --retry 3 -o sources/easyprivacy.txt https://easylist.to/easylist/easyprivacy.txt
+          curl -fsSL --retry 3 -o sources/easylist-cookie.txt https://secure.fanboy.co.nz/fanboy-cookiemonster.txt
 
       - name: Convert
         if: inputs.rollback_to == ''
@@ -91,6 +92,20 @@ jobs:
         id: result
         run: echo "publish=${PUBLISH:-false}" >> "$GITHUB_OUTPUT"
 
+      # GitHub pauses scheduled workflows in public repos after 60 days
+      # without a commit; this repo rarely gets any otherwise.
+      - name: Keep the schedule alive
+        if: always() && github.event_name == 'schedule'
+        run: |
+          if [ $(( $(date +%s) - $(git log -1 --format=%ct) )) -gt $((30 * 86400)) ]; then
+            date -u +%Y-%m-%d > .keepalive
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .keepalive
+            git commit -m "Keep the daily schedule alive"
+            git push
+          fi
+
       - uses: actions/upload-artifact@v4
         if: env.PUBLISH == 'true'
         with:
@@ -100,6 +115,7 @@ jobs:
             dist/manifest.sig
             dist/ads.json
             dist/privacy.json
+            dist/cookies.json
 
   deploy:
     needs: build

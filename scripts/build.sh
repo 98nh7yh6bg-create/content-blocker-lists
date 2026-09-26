@@ -2,10 +2,11 @@
 # Converts the downloaded filter lists into WebKit content-blocker JSON and
 # writes dist/manifest.json describing them.
 #
-# Generic element-hiding rules (`##selector` with no domain) are dropped:
-# they apply thousands of selectors to every page, which slows styling and
-# breaks more pages than it fixes. Network rules and site-specific hiding
-# (`example.com##selector`) are kept.
+# For the ad and privacy lists, generic element-hiding rules (`##selector`
+# with no domain) are dropped: they apply thousands of selectors to every
+# page, which slows styling and breaks more pages than it fixes. Network rules
+# and site-specific hiding (`example.com##selector`) are kept. The cookie list
+# keeps its generic rules, since that's how it finds banners on any site.
 set -euo pipefail
 
 SAFARI_VERSION=26
@@ -13,10 +14,14 @@ MAX_RULES=150000
 mkdir -p dist work
 
 convert() {
-  local name=$1 source=$2 title=$3 url=$4
-  # Drop generic cosmetic rules, including ones that only exclude domains
-  # (`~example.com##.ad`), and their generic exceptions.
-  grep -v -E '^(##|#@#|#\?#|#\$#|#@\$#|#@\?#)|^~[^#]*#[@$?]*#' "sources/$source" > "work/$name.txt" || true
+  local name=$1 source=$2 title=$3 url=$4 generic=${5:-drop}
+  if [ "$generic" = keep ]; then
+    cp "sources/$source" "work/$name.txt"
+  else
+    # Drop generic cosmetic rules, including ones that only exclude domains
+    # (`~example.com##.ad`), and their generic exceptions.
+    grep -v -E '^(##|#@#|#\?#|#\$#|#@\$#|#@\?#)|^~[^#]*#[@$?]*#' "sources/$source" > "work/$name.txt" || true
+  fi
   # Our own fixes go last, so their exceptions override the list's rules.
   # (WebKit only applies exceptions within the same list, so each gets a copy.)
   printf '\n' >> "work/$name.txt"
@@ -54,11 +59,12 @@ PY
 
 convert ads easylist.txt "EasyList" "https://easylist.to/"
 convert privacy easyprivacy.txt "EasyPrivacy" "https://easylist.to/"
+convert cookies easylist-cookie.txt "EasyList Cookie List" "https://easylist.to/" keep
 
 python3 - "${CONVERTER_VERSION:-unknown}" <<'PY'
 import datetime, json, sys
 now = datetime.datetime.now(datetime.timezone.utc)
-lists = [json.load(open(f"work/entries/{name}.json")) for name in ("ads", "privacy")]
+lists = [json.load(open(f"work/entries/{name}.json")) for name in ("ads", "privacy", "cookies")]
 manifest = {
     "format": 1,
     # Identifies the build; rollbacks may put an older one live.
@@ -67,7 +73,7 @@ manifest = {
     "checkEveryHours": 24,
     "generated": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
     "converter": sys.argv[1],
-    "license": "EasyList and EasyPrivacy, CC BY-SA 3.0 (https://easylist.to/)",
+    "license": "EasyList and EasyPrivacy (CC BY-SA 3.0), EasyList Cookie List (CC BY 3.0); https://easylist.to/",
     "lists": lists,
 }
 json.dump(manifest, open("dist/manifest.json", "w"), indent=2)

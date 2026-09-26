@@ -1,7 +1,8 @@
 # content-blocker-lists
 
 Daily WebKit content-blocker lists built from
-[EasyList and EasyPrivacy](https://easylist.to/), for a WebKit browser app.
+[EasyList, EasyPrivacy and the EasyList Cookie List](https://easylist.to/), for a
+WebKit browser app.
 
 A daily GitHub Action downloads the filter lists, adds our own fixes from
 `unbreak.txt`, converts them with AdGuard's
@@ -14,6 +15,7 @@ release (the newest 5).
 
 - `ads.json` – EasyList as WebKit content-blocker JSON
 - `privacy.json` – EasyPrivacy as WebKit content-blocker JSON
+- `cookies.json` – EasyList Cookie List (hides cookie consent banners)
 - `manifest.json` – version, and each list's SHA-256, size and rule count
 - `manifest.sig` – Ed25519 signature of `manifest.json`
 
@@ -38,9 +40,11 @@ release tag (e.g. `lists-202609270417`); that build goes live again.
 
 ## What's included
 
-Network blocking rules and site-specific element hiding. Generic element-hiding
-rules (`##selector` with no domain) are left out: they apply thousands of
-selectors to every page, which slows pages down and breaks more than it fixes.
+Network blocking rules and site-specific element hiding. For the ad and privacy
+lists, generic element-hiding rules (`##selector` with no domain) are left out:
+they apply thousands of selectors to every page, which slows pages down and
+breaks more than it fixes. The cookie list keeps them, since generic rules are
+how it finds consent banners on any site.
 
 ## Signing
 
@@ -50,6 +54,7 @@ key requires an app update with the new public key.
 
 ## License
 
-The lists are derived from EasyList and EasyPrivacy and are available under the
-same terms: [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)
-(EasyList is dual licensed with GPLv3). The build scripts are MIT licensed.
+The lists are derived from EasyList and EasyPrivacy, available under the same
+terms: [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) (EasyList
+is dual licensed with GPLv3). The cookie list is derived from the EasyList Cookie
+List, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The build scripts are MIT licensed.
