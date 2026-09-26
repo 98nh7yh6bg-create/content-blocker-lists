@@ -5,12 +5,23 @@ on:
     # Daily, at an off-peak minute.
     - cron: "17 4 * * *"
   workflow_dispatch:
+    inputs:
+      rollback_to:
+        description: "Put an archived release live instead of building (e.g. lists-202609270417)"
+        required: false
+        default: ""
+      force:
+        description: "Publish even if the sanity checks fail"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
-  group: build
+  group: lists
   cancel-in-progress: false
 
 env:
@@ -18,34 +29,90 @@ env:
   CONVERTER_URL: https://github.com/AdguardTeam/SafariConverterLib/releases/download/v4.3.0/ConverterTool
   CONVERTER_SHA256: 6687be9f1a77abd5299299086c5fbffd0d1b5baec755eb4808aa2f53e275d3c0
   CONVERTER_VERSION: 4.3.0
+  # Where the live lists are served (redirects to the custom domain once set).
+  LIVE_URL: https://98nh7yh6bg-create.github.io/content-blocker-lists
 
 jobs:
   build:
     runs-on: macos-latest
+    outputs:
+      publish: ${{ steps.result.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Restore archived release
+        if: inputs.rollback_to != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist
+          gh release download "${{ inputs.rollback_to }}" --dir dist
+          echo "PUBLISH=true" >> "$GITHUB_ENV"
+
       - name: Fetch converter
+        if: inputs.rollback_to == ''
         run: |
           curl -fsSL --retry 3 -o ConverterTool "$CONVERTER_URL"
           echo "$CONVERTER_SHA256  ConverterTool" | shasum -a 256 -c -
           chmod +x ConverterTool
 
       - name: Fetch filter lists
+        if: inputs.rollback_to == ''
         run: |
           mkdir -p sources
           curl -fsSL --retry 3 -o sources/easylist.txt https://easylist.to/easylist/easylist.txt
           curl -fsSL --retry 3 -o sources/easyprivacy.txt https://easylist.to/easylist/easyprivacy.txt
 
       - name: Convert
+        if: inputs.rollback_to == ''
         run: scripts/build.sh
 
+      - name: Sanity checks
+        if: inputs.rollback_to == ''
+        env:
+          FORCE: ${{ inputs.force && '1' || '' }}
+        run: python3 scripts/check.py
+
       - name: Sign manifest
+        if: inputs.rollback_to == '' && env.PUBLISH == 'true'
         env:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
         run: swift scripts/sign.swift dist/manifest.json > dist/manifest.sig
 
-      - name: Publish if changed
+      - name: Archive as a release
+        if: inputs.rollback_to == '' && env.PUBLISH == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: scripts/publish.sh
+        run: scripts/archive.sh
+
+      - name: Result
+        id: result
+        run: echo "publish=${PUBLISH:-false}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        if: env.PUBLISH == 'true'
+        with:
+          name: site
+          path: |
+            dist/manifest.json
+            dist/manifest.sig
+            dist/ads.json
+            dist/privacy.json
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

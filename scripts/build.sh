@@ -17,6 +17,10 @@ convert() {
   # Drop generic cosmetic rules, including ones that only exclude domains
   # (`~example.com##.ad`), and their generic exceptions.
   grep -v -E '^(##|#@#|#\?#|#\$#|#@\$#|#@\?#)|^~[^#]*#[@$?]*#' "sources/$source" > "work/$name.txt" || true
+  # Our own fixes go last, so their exceptions override the list's rules.
+  # (WebKit only applies exceptions within the same list, so each gets a copy.)
+  printf '\n' >> "work/$name.txt"
+  cat unbreak.txt >> "work/$name.txt"
 
   ./ConverterTool convert \
     --safari-version "$SAFARI_VERSION" \
@@ -57,8 +61,10 @@ now = datetime.datetime.now(datetime.timezone.utc)
 lists = [json.load(open(f"work/entries/{name}.json")) for name in ("ads", "privacy")]
 manifest = {
     "format": 1,
-    # Sortable, so the app only ever moves forward.
+    # Identifies the build; rollbacks may put an older one live.
     "version": int(now.strftime("%Y%m%d%H%M")),
+    # How often apps should check; can be raised later without an app update.
+    "checkEveryHours": 24,
     "generated": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
     "converter": sys.argv[1],
     "license": "EasyList and EasyPrivacy, CC BY-SA 3.0 (https://easylist.to/)",

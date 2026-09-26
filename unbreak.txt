@@ -1,0 +1,9 @@
+! Our own fixes, applied on top of EasyList and EasyPrivacy.
+! Exceptions here override those lists. One rule per line, AdGuard/ABP syntax.
+!
+! Let a blocked resource load on one site:
+!   @@||cdn.example.com^$domain=example.org
+! Turn off all blocking on a site:
+!   @@||example.org^$document
+!
+! Push a change here and run the workflow (or wait for the daily run).

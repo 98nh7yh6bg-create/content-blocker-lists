@@ -3,23 +3,38 @@
 Daily WebKit content-blocker lists built from
 [EasyList and EasyPrivacy](https://easylist.to/), for a WebKit browser app.
 
-A GitHub Action downloads the filter lists, converts them with AdGuard's
+A daily GitHub Action downloads the filter lists, adds our own fixes from
+`unbreak.txt`, converts them with AdGuard's
 [SafariConverterLib](https://github.com/AdguardTeam/SafariConverterLib)
-(pinned by version and checksum), and publishes a new release only when the
-lists change.
+(pinned by version and checksum), runs sanity checks, and publishes to GitHub
+Pages only when the lists change. Each published build is also kept as a
+release (the newest 5).
 
-## Files (in each release)
+## Files
 
 - `ads.json` – EasyList as WebKit content-blocker JSON
 - `privacy.json` – EasyPrivacy as WebKit content-blocker JSON
 - `manifest.json` – version, and each list's SHA-256, size and rule count
 - `manifest.sig` – Ed25519 signature of `manifest.json`
 
-The newest release is always at
-`https://github.com/<owner>/content-blocker-lists/releases/latest/download/<file>`.
+Served at `https://lists.angelakismax.com/<file>` (GitHub Pages).
 
 Apps should verify `manifest.sig` against their built-in public key, then each
 list's SHA-256 against the manifest, before using anything.
+
+## When a site breaks
+
+Add an exception to `unbreak.txt` and push; it goes live on the next run (run
+the workflow by hand to publish right away).
+
+## Safety checks
+
+A build isn't published if a list's rule count moves more than 20% from the live
+version, or if any rule would block the main page of a major site. Run the
+workflow with **force** to publish anyway after checking.
+
+To undo a bad build, run the workflow with **rollback_to** set to an earlier
+release tag (e.g. `lists-202609270417`); that build goes live again.
 
 ## What's included
 
