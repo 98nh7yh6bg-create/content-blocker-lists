@@ -6,7 +6,7 @@ Daily WebKit content-blocker lists built from
 A daily GitHub Action downloads the filter lists, adds our own fixes from
 `unbreak.txt`, converts them with AdGuard's
 [SafariConverterLib](https://github.com/AdguardTeam/SafariConverterLib)
-(pinned by version and checksum), runs sanity checks, and publishes to GitHub
+(built from source at a pinned tag and commit), runs sanity checks, and publishes to GitHub
 Pages only when the lists change. Each published build is also kept as a
 release (the newest 5).
 

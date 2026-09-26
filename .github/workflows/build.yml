@@ -25,10 +25,11 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # AdGuard's Safari converter, pinned to a release and its published checksum.
-  CONVERTER_URL: https://github.com/AdguardTeam/SafariConverterLib/releases/download/v4.3.0/ConverterTool
-  CONVERTER_SHA256: 6687be9f1a77abd5299299086c5fbffd0d1b5baec755eb4808aa2f53e275d3c0
+  # AdGuard's Safari converter, built from source at a pinned tag and commit.
+  # (The prebuilt release binary is missing its resource bundle and crashes.)
+  CONVERTER_REPO: https://github.com/AdguardTeam/SafariConverterLib.git
   CONVERTER_VERSION: 4.3.0
+  CONVERTER_COMMIT: 7a2e93f0afa70479cc59985f332025236c3f0c39
   # Where the live lists are served (redirects to the custom domain once set).
   LIVE_URL: https://98nh7yh6bg-create.github.io/content-blocker-lists
 
@@ -38,7 +39,7 @@ jobs:
     outputs:
       publish: ${{ steps.result.outputs.publish }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Restore archived release
         if: inputs.rollback_to != ''
@@ -49,12 +50,13 @@ jobs:
           gh release download "${{ inputs.rollback_to }}" --dir dist
           echo "PUBLISH=true" >> "$GITHUB_ENV"
 
-      - name: Fetch converter
+      - name: Build converter
         if: inputs.rollback_to == ''
         run: |
-          curl -fsSL --retry 3 -o ConverterTool "$CONVERTER_URL"
-          echo "$CONVERTER_SHA256  ConverterTool" | shasum -a 256 -c -
-          chmod +x ConverterTool
+          git clone --quiet --depth 1 --branch "v$CONVERTER_VERSION" "$CONVERTER_REPO" converter-src
+          test "$(git -C converter-src rev-parse HEAD)" = "$CONVERTER_COMMIT"
+          swift build --package-path converter-src -c release --product ConverterTool
+          echo "CONVERTER=$(swift build --package-path converter-src -c release --show-bin-path)/ConverterTool" >> "$GITHUB_ENV"
 
       - name: Fetch filter lists
         if: inputs.rollback_to == ''

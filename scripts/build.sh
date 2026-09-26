@@ -22,7 +22,7 @@ convert() {
   printf '\n' >> "work/$name.txt"
   cat unbreak.txt >> "work/$name.txt"
 
-  ./ConverterTool convert \
+  "${CONVERTER:-./ConverterTool}" convert \
     --safari-version "$SAFARI_VERSION" \
     --input-path "work/$name.txt" \
     --safari-rules-json-path "dist/$name.json" >/dev/null
