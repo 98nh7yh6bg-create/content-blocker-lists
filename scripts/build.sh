@@ -15,6 +15,18 @@ mkdir -p dist work
 
 convert() {
   local name=$1 source=$2 title=$3 url=$4 generic=${5:-drop}
+  if [ ! -f "sources/$source" ]; then
+    # fetch.sh couldn't download this list; keep the live copy unchanged.
+    echo "$name: no fresh source, keeping the live copy"
+    curl -fsSL --retry 3 -o "dist/$name.json" "$LIVE_URL/$name.json"
+  else
+    convert_source "$name" "$source" "$generic"
+  fi
+  describe "$name" "$title" "$url"
+}
+
+convert_source() {
+  local name=$1 source=$2 generic=$3
   if [ "$generic" = keep ]; then
     cp "sources/$source" "work/$name.txt"
   else
@@ -31,7 +43,10 @@ convert() {
     --safari-version "$SAFARI_VERSION" \
     --input-path "work/$name.txt" \
     --safari-rules-json-path "dist/$name.json" >/dev/null
+}
 
+describe() {
+  local name=$1 title=$2 url=$3
   python3 - "$name" "$title" "$url" "$MAX_RULES" <<'PY'
 import hashlib, json, os, sys
 name, title, url, max_rules = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])

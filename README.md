@@ -11,6 +11,11 @@ A daily GitHub Action downloads the filter lists, adds our own fixes from
 Pages only when the lists change. Each published build is also kept as a
 release (the newest 5).
 
+Each list is fetched from its official URL, then from the Adblock Plus mirror
+(`easylist-downloads.adblockplus.org`). If a list can't be fetched from either,
+the build keeps the live copy of that list and still updates the others.
+Pull requests run the whole build as a dry run without publishing.
+
 ## Files
 
 - `ads.json` – EasyList as WebKit content-blocker JSON
