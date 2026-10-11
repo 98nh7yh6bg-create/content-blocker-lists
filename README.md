@@ -13,7 +13,7 @@ release (the newest 5).
 
 Each list is fetched from its official URL, then from the Adblock Plus mirror
 (`easylist-downloads.adblockplus.org`). If a list can't be fetched from either,
-the build keeps the live copy of that list and still updates the others.
+the build keeps the last published copy of that list (from the newest release) and still updates the others.
 Pull requests run the whole build as a dry run without publishing.
 
 ## Files

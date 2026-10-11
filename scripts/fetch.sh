@@ -1,7 +1,7 @@
 #!/bin/bash
 # Downloads the filter lists into sources/. Each list is tried at its official
 # URL first, then at a mirror. A list that can't be fetched anywhere is left
-# out, and build.sh keeps the live copy of it instead, so one source being down
+# out, and build.sh keeps the last published copy of it instead, so one source being down
 # doesn't stop the others from updating. Fails only if every list is missing.
 set -uo pipefail
 
@@ -21,7 +21,7 @@ fetch() {
     echo "::warning::$file: couldn't fetch a filter list from $url"
   done
   rm -f "sources/$file.tmp"
-  echo "::warning::$file: every source failed; keeping the live copy"
+  echo "::warning::$file: every source failed; keeping the last published copy"
 }
 
 fetch easylist.txt \

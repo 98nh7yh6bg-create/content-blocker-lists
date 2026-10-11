@@ -66,6 +66,8 @@ jobs:
 
       - name: Convert
         if: inputs.rollback_to == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: scripts/build.sh
 
       - name: Sanity checks

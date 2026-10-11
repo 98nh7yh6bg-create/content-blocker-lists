@@ -16,9 +16,17 @@ mkdir -p dist work
 convert() {
   local name=$1 source=$2 title=$3 url=$4 generic=${5:-drop}
   if [ ! -f "sources/$source" ]; then
-    # fetch.sh couldn't download this list; keep the live copy unchanged.
-    echo "$name: no fresh source, keeping the live copy"
-    curl -fsSL --retry 3 -o "dist/$name.json" "$LIVE_URL/$name.json"
+    # fetch.sh couldn't download this list; keep the last published copy,
+    # from the newest release archive.sh made. (The live site answers the
+    # runners with 403, so it can't be read from here.)
+    echo "$name: no fresh source, keeping the last published copy"
+    local tag
+    tag=$(gh release list --limit 100 --json tagName --jq '[.[].tagName | select(startswith("lists-"))] | sort | last // empty')
+    if [ -z "$tag" ]; then
+      echo "::error::$name: no fresh source and no published copy to keep"
+      exit 1
+    fi
+    gh release download "$tag" --pattern "$name.json" --dir dist --clobber
   else
     convert_source "$name" "$source" "$generic"
   fi
