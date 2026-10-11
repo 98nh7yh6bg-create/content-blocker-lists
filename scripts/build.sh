@@ -94,16 +94,28 @@ convert cookies easylist-cookie.txt "EasyList Cookie List" "https://easylist.to/
 
 # Fanboy's Annoyance List (newsletter and "open in app" pop-ups, chat and
 # notification prompts, social widgets) also bundles the cookie list. Those
-# rules are taken out, so the app's cookie switch still decides them. Without
-# a fresh cookie list to take out, the annoyances copy isn't fresh either.
-if [ -f sources/fanboy-annoyance.txt ] && [ -f sources/easylist-cookie.txt ]; then
-  python3 - <<'PY2'
-cookie = set(open("sources/easylist-cookie.txt", encoding="utf-8").read().splitlines())
-with open("sources/fanboy-annoyance.txt", encoding="utf-8") as source, \
-     open("sources/annoyances.txt", "w", encoding="utf-8") as out:
-    kept = [line for line in source.read().splitlines() if line not in cookie or line.startswith("!")]
-    out.write("\n".join(kept) + "\n")
-print(f"annoyances: {len(kept)} lines after taking out the cookie list")
+# sections are taken out, so the app's cookie switch still decides them. Each
+# bundled file starts with a `! *** easylist:<path> ***` line; if none of
+# them name the cookie list, the format changed and the list is left out
+# (keeping the last published copy) rather than published with cookie rules.
+if [ -f sources/fanboy-annoyance.txt ]; then
+  python3 - <<'PY2' || rm -f sources/annoyances.txt
+import re, sys
+marker = re.compile(r"^! \*\*\* (\S+) \*\*\*$")
+kept, skipping, removed, dropped = [], False, 0, 0
+for line in open("sources/fanboy-annoyance.txt", encoding="utf-8").read().splitlines():
+    match = marker.match(line)
+    if match:
+        skipping = "easylist_cookie/" in match.group(1)
+        removed += skipping
+    if skipping:
+        dropped += 1
+    else:
+        kept.append(line)
+if not removed:
+    sys.exit("::warning::annoyances: couldn't find the bundled cookie list sections; leaving it out")
+open("sources/annoyances.txt", "w", encoding="utf-8").write("\n".join(kept) + "\n")
+print(f"annoyances: took out {removed} cookie list sections ({dropped} lines), kept {len(kept)} lines")
 PY2
 fi
 convert annoyances annoyances.txt "Fanboy's Annoyance List" "https://easylist.to/" keep optional
