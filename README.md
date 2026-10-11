@@ -1,8 +1,8 @@
 # content-blocker-lists
 
 Daily WebKit content-blocker lists built from
-[EasyList, EasyPrivacy and the EasyList Cookie List](https://easylist.to/), for a
-WebKit browser app.
+[EasyList, EasyPrivacy, the EasyList Cookie List and Fanboy's Annoyance List](https://easylist.to/),
+for a WebKit browser app.
 
 A daily GitHub Action downloads the filter lists, adds our own fixes from
 `unbreak.txt`, converts them with AdGuard's
@@ -22,6 +22,10 @@ Pull requests run the whole build as a dry run without publishing.
 - `ads.json` – EasyList as WebKit content-blocker JSON
 - `privacy.json` – EasyPrivacy as WebKit content-blocker JSON
 - `cookies.json` – EasyList Cookie List (hides cookie consent banners)
+- `annoyances.json` – Fanboy's Annoyance List without its copy of the cookie
+  list (newsletter and "open in app" pop-ups, chat and notification prompts,
+  social widgets). Listed under `optionalLists`, which apps only use when the
+  user turns it on; older app builds read only `lists` and never see it.
 - `manifest.json` – version, and each list's SHA-256, size and rule count
 - `manifest.sig` – Ed25519 signature of `manifest.json`
 
@@ -50,7 +54,7 @@ Network blocking rules and site-specific element hiding. For the ad and privacy
 lists, generic element-hiding rules (`##selector` with no domain) are left out:
 they apply thousands of selectors to every page, which slows pages down and
 breaks more than it fixes. The cookie list keeps them, since generic rules are
-how it finds consent banners on any site.
+how it finds consent banners on any site, and so does the annoyances list.
 
 ## Signing
 
@@ -62,5 +66,6 @@ key requires an app update with the new public key.
 
 The lists are derived from EasyList and EasyPrivacy, available under the same
 terms: [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) (EasyList
-is dual licensed with GPLv3). The cookie list is derived from the EasyList Cookie
+is dual licensed with GPLv3). The annoyances list is derived from Fanboy's Annoyance
+List, under the same terms as EasyList. The cookie list is derived from the EasyList Cookie
 List, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The build scripts are MIT licensed.

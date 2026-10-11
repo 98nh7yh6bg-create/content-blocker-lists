@@ -120,6 +120,7 @@ jobs:
             dist/ads.json
             dist/privacy.json
             dist/cookies.json
+            dist/annoyances.json
 
   deploy:
     needs: build

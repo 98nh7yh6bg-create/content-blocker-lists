@@ -91,15 +91,16 @@ def blocks_main_page(rule):
 
 def main():
     manifest = json.load(open("dist/manifest.json"))
+    lists = manifest["lists"] + manifest.get("optionalLists", [])
     previous = published_manifest()
     problems = []
 
     if previous:
-        before = {entry["name"]: entry for entry in previous.get("lists", [])}
-        if [e["sha256"] for e in manifest["lists"]] == [before.get(e["name"], {}).get("sha256") for e in manifest["lists"]]:
+        before = {entry["name"]: entry for entry in previous.get("lists", []) + previous.get("optionalLists", [])}
+        if len(lists) == len(before) and all(e["sha256"] == before.get(e["name"], {}).get("sha256") for e in lists):
             print("Lists unchanged; nothing to publish.")
             return
-        for entry in manifest["lists"]:
+        for entry in lists:
             old = before.get(entry["name"])
             if not old or not old.get("rules"):
                 continue
@@ -108,7 +109,7 @@ def main():
             if abs(change) > MAX_CHANGE:
                 problems.append(f"{entry['name']} changed by {change:+.0%} ({old['rules']} -> {entry['rules']})")
 
-    for entry in manifest["lists"]:
+    for entry in lists:
         rules = json.load(open(f"dist/{entry['file']}"))
         for rule in rules:
             url = blocks_main_page(rule)
