@@ -103,10 +103,10 @@ def main():
             old = before.get(entry["name"])
             if not old or not old.get("rules"):
                 continue
-            change = abs(entry["rules"] - old["rules"]) / old["rules"]
+            change = (entry["rules"] - old["rules"]) / old["rules"]
             print(f"{entry['name']}: {old['rules']} -> {entry['rules']} rules ({change:+.1%})")
-            if change > MAX_CHANGE:
-                problems.append(f"{entry['name']} changed by {change:.0%} ({old['rules']} -> {entry['rules']})")
+            if abs(change) > MAX_CHANGE:
+                problems.append(f"{entry['name']} changed by {change:+.0%} ({old['rules']} -> {entry['rules']})")
 
     for entry in manifest["lists"]:
         rules = json.load(open(f"dist/{entry['file']}"))

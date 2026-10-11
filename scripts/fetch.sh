@@ -14,7 +14,7 @@ fetch() {
     if curl -fsSL --retry 3 --retry-all-errors --connect-timeout 20 --max-time 120 -o "sources/$file.tmp" "$url" &&
       head -n 1 "sources/$file.tmp" | grep -q '^\[Adblock Plus'; then
       mv "sources/$file.tmp" "sources/$file"
-      echo "$file: fetched from $url"
+      echo "$file: fetched from $url ($(grep -m 1 -i '^! Version:' "sources/$file" | cut -c 3-))"
       fetched=$((fetched + 1))
       return
     fi
