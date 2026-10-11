@@ -32,8 +32,6 @@ env:
   CONVERTER_REPO: https://github.com/AdguardTeam/SafariConverterLib.git
   CONVERTER_VERSION: 4.3.0
   CONVERTER_COMMIT: 7a2e93f0afa70479cc59985f332025236c3f0c39
-  # Where the live lists are served (redirects to the custom domain once set).
-  LIVE_URL: https://98nh7yh6bg-create.github.io/content-blocker-lists
 
 jobs:
   build:
@@ -73,7 +71,9 @@ jobs:
       - name: Sanity checks
         if: inputs.rollback_to == ''
         env:
-          FORCE: ${{ inputs.force && '1' || '' }}
+          GH_TOKEN: ${{ github.token }}
+          # Pull requests only report problems: upstream changes aren't theirs.
+          FORCE: ${{ (inputs.force || github.event_name == 'pull_request') && '1' || '' }}
         run: python3 scripts/check.py
 
       - name: Dry run on pull requests

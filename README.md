@@ -36,8 +36,8 @@ the workflow by hand to publish right away).
 
 ## Safety checks
 
-A build isn't published if a list's rule count moves more than 20% from the live
-version, or if any rule would block the main page of a major site. Run the
+A build isn't published if a list's rule count moves more than 20% from the last
+published build, or if any rule would block the main page of a major site. Run the
 workflow with **force** to publish anyway after checking.
 
 To undo a bad build, run the workflow with **rollback_to** set to an earlier

@@ -3,16 +3,15 @@
 Sets PUBLISH=true in $GITHUB_ENV when the lists changed and look sane.
 Fails the job when they don't, unless FORCE is set:
 
-- a list's rule count moved more than 20% since the live version, or
+- a list's rule count moved more than 20% since the last published build, or
 - a rule would block the main page of a major site.
 """
 import json
 import os
 import re
+import subprocess
 import sys
-import urllib.request
 
-LIVE_URL = os.environ.get("LIVE_URL", "")
 FORCE = bool(os.environ.get("FORCE"))
 MAX_CHANGE = 0.20
 
@@ -39,15 +38,28 @@ def export(name, value):
             env.write(f"{name}={value}\n")
 
 
-def live_manifest():
-    if not LIVE_URL:
-        return None
+def published_manifest():
+    """The manifest of the newest release archive.sh made.
+
+    (The live site answers the runners with 403, so it can't be read here.)
+    """
     try:
-        with urllib.request.urlopen(f"{LIVE_URL}/manifest.json", timeout=20) as response:
-            return json.load(response)
-    except Exception as error:  # First run, or the site is unreachable.
-        print(f"No live manifest ({error}); skipping comparisons.")
-        return None
+        tag = subprocess.run(
+            ["gh", "release", "list", "--limit", "100", "--json", "tagName", "--jq",
+             '[.[].tagName | select(startswith("lists-"))] | sort | last // empty'],
+            check=True, capture_output=True, text=True,
+        ).stdout.strip()
+        if not tag:
+            print("No published build yet; skipping comparisons.")
+            return None
+        data = subprocess.run(
+            ["gh", "release", "download", tag, "--pattern", "manifest.json", "--output", "-"],
+            check=True, capture_output=True, text=True,
+        ).stdout
+        print(f"Comparing with {tag}.")
+        return json.loads(data)
+    except (subprocess.CalledProcessError, json.JSONDecodeError) as error:
+        sys.exit(f"Couldn't read the last published manifest: {getattr(error, 'stderr', '') or error}")
 
 
 def blocks_main_page(rule):
@@ -79,7 +91,7 @@ def blocks_main_page(rule):
 
 def main():
     manifest = json.load(open("dist/manifest.json"))
-    previous = live_manifest()
+    previous = published_manifest()
     problems = []
 
     if previous:
