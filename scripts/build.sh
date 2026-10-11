@@ -15,6 +15,26 @@ mkdir -p dist work
 
 convert() {
   local name=$1 source=$2 title=$3 url=$4 generic=${5:-drop}
+  if [ ! -f "sources/$source" ]; then
+    # fetch.sh couldn't download this list; keep the last published copy,
+    # from the newest release archive.sh made. (The live site answers the
+    # runners with 403, so it can't be read from here.)
+    echo "$name: no fresh source, keeping the last published copy"
+    local tag
+    tag=$(gh release list --limit 100 --json tagName --jq '[.[].tagName | select(startswith("lists-"))] | sort | last // empty')
+    if [ -z "$tag" ]; then
+      echo "::error::$name: no fresh source and no published copy to keep"
+      exit 1
+    fi
+    gh release download "$tag" --pattern "$name.json" --dir dist --clobber
+  else
+    convert_source "$name" "$source" "$generic"
+  fi
+  describe "$name" "$title" "$url"
+}
+
+convert_source() {
+  local name=$1 source=$2 generic=$3
   if [ "$generic" = keep ]; then
     cp "sources/$source" "work/$name.txt"
   else
@@ -31,7 +51,10 @@ convert() {
     --safari-version "$SAFARI_VERSION" \
     --input-path "work/$name.txt" \
     --safari-rules-json-path "dist/$name.json" >/dev/null
+}
 
+describe() {
+  local name=$1 title=$2 url=$3
   python3 - "$name" "$title" "$url" "$MAX_RULES" <<'PY'
 import hashlib, json, os, sys
 name, title, url, max_rules = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])

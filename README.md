@@ -11,6 +11,12 @@ A daily GitHub Action downloads the filter lists, adds our own fixes from
 Pages only when the lists change. Each published build is also kept as a
 release (the newest 5).
 
+Each list is fetched from its official URL; EasyList and EasyPrivacy also fall
+back to the Adblock Plus mirror (`easylist-downloads.adblockplus.org`). A
+download over a week old counts as failed. If a list can't be fetched,
+the build keeps the last published copy of that list (from the newest release) and still updates the others.
+Pull requests run the whole build as a dry run without publishing.
+
 ## Files
 
 - `ads.json` – EasyList as WebKit content-blocker JSON
@@ -31,8 +37,8 @@ the workflow by hand to publish right away).
 
 ## Safety checks
 
-A build isn't published if a list's rule count moves more than 20% from the live
-version, or if any rule would block the main page of a major site. Run the
+A build isn't published if a list's rule count moves more than 20% from the last
+published build, or if any rule would block the main page of a major site. Run the
 workflow with **force** to publish anyway after checking.
 
 To undo a bad build, run the workflow with **rollback_to** set to an earlier
