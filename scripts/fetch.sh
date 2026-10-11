@@ -45,6 +45,9 @@ fetch easyprivacy.txt \
 # No mirror: the Adblock Plus copy of this one stopped updating in March 2024.
 fetch easylist-cookie.txt \
   https://secure.fanboy.co.nz/fanboy-cookiemonster.txt
+fetch fanboy-annoyance.txt \
+  https://secure.fanboy.co.nz/fanboy-annoyance.txt \
+  https://easylist.to/easylist/fanboy-annoyance.txt
 
 if [ "$fetched" -eq 0 ]; then
   echo "::error::No filter list could be fetched."

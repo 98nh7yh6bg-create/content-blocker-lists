@@ -8,11 +8,14 @@ version=$(python3 -c 'import json; print(json.load(open("dist/manifest.json"))["
 summary=$(python3 - <<'PY'
 import json
 manifest = json.load(open("dist/manifest.json"))
-print("\n".join("- {}: {:,} rules".format(l["source"], l["rules"]) for l in manifest["lists"]))
+lists = manifest["lists"] + manifest.get("optionalLists", [])
+print("\n".join("- {}: {:,} rules".format(l["source"], l["rules"]) for l in lists))
 PY
 )
 
-gh release create "lists-$version" dist/manifest.json dist/manifest.sig dist/ads.json dist/privacy.json dist/cookies.json \
+files=(dist/manifest.json dist/manifest.sig dist/ads.json dist/privacy.json dist/cookies.json)
+[ -f dist/annoyances.json ] && files+=(dist/annoyances.json)
+gh release create "lists-$version" "${files[@]}" \
   --title "Lists $version" \
   --notes "$summary"
 
