@@ -11,8 +11,9 @@ A daily GitHub Action downloads the filter lists, adds our own fixes from
 Pages only when the lists change. Each published build is also kept as a
 release (the newest 5).
 
-Each list is fetched from its official URL, then from the Adblock Plus mirror
-(`easylist-downloads.adblockplus.org`). If a list can't be fetched from either,
+Each list is fetched from its official URL; EasyList and EasyPrivacy also fall
+back to the Adblock Plus mirror (`easylist-downloads.adblockplus.org`). A
+download over a week old counts as failed. If a list can't be fetched,
 the build keeps the last published copy of that list (from the newest release) and still updates the others.
 Pull requests run the whole build as a dry run without publishing.
 
