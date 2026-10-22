@@ -38,6 +38,7 @@ jobs:
     runs-on: macos-latest
     outputs:
       publish: ${{ steps.result.outputs.publish }}
+      stale: ${{ steps.freshness.outputs.stale }}
     steps:
       - uses: actions/checkout@v5
 
@@ -67,6 +68,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: scripts/build.sh
+
+      - name: Freshness
+        id: freshness
+        if: inputs.rollback_to == ''
+        run: echo "stale=$(cat work/stale.txt 2>/dev/null)" >> "$GITHUB_OUTPUT"
 
       - name: Sanity checks
         if: inputs.rollback_to == ''
@@ -139,3 +145,17 @@ jobs:
           path: site
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # A list whose download has failed for 3 days or more (build.sh): fails the
+  # run, so GitHub emails about it. After publishing, which goes ahead anyway
+  # with the last good copy.
+  freshness:
+    needs: [build, deploy]
+    if: always() && needs.build.result == 'success' && needs.build.outputs.stale != '' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          STALE: ${{ needs.build.outputs.stale }}
+        run: |
+          echo "::error::Not updated for 3 days or more: $STALE. Apps keep the last good copy; see why the download fails in the Fetch filter lists step."
+          exit 1

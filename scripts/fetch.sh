@@ -33,6 +33,8 @@ fetch() {
       continue
     fi
     mv "sources/$file.tmp" "sources/$file"
+    # For the manifest (`sourceVersion`), and for spotting a list that's stuck.
+    echo "${version:0:12}" > "sources/$file.version"
     echo "$file: fetched version $version from $url"
     fetched=$((fetched + 1))
     return

@@ -20,6 +20,7 @@ mkdir -p dist work
 
 convert() {
   local name=$1 source=$2 title=$3 url=$4 generic=${5:-drop} optional=${6:-}
+  local version=""
   if [ ! -f "sources/$source" ]; then
     # fetch.sh couldn't download this list; keep the last published copy,
     # from the newest release archive.sh made. (The live site answers the
@@ -28,7 +29,14 @@ convert() {
     local tag
     tag=$(gh release list --limit 100 --json tagName --jq '[.[].tagName | select(startswith("lists-"))] | sort | last // empty')
     if [ -n "$tag" ] && gh release download "$tag" --pattern "$name.json" --dir dist --clobber; then
-      :
+      # The kept copy's source is as old as that release says (manifests
+      # from before `sourceVersion` only give the build's own time).
+      version=$(gh release download "$tag" --pattern manifest.json --output - | python3 -c '
+import json, sys
+manifest = json.load(sys.stdin)
+entry = next((e for e in manifest["lists"] + manifest.get("optionalLists", []) if e["name"] == sys.argv[1]), {})
+print(entry.get("sourceVersion") or manifest["version"])' "$name") || version=""
+      echo "$name" >> work/kept.txt
     elif [ -n "$optional" ]; then
       echo "::warning::$name: no fresh source and no published copy; leaving it out"
       return
@@ -38,10 +46,11 @@ convert() {
     fi
   else
     convert_source "$name" "$source" "$generic"
+    version=$(cat "sources/$source.version" 2>/dev/null || true)
   fi
   # Also on a kept copy, so the change reaches lists whose source is down.
   if [ "$generic" = keep ]; then main_page_only "$name"; fi
-  describe "$name" "$title" "$url"
+  describe "$name" "$title" "$url" "$version"
 }
 
 # Site-wide hiding rules apply to the main page only. Checked in every frame
@@ -87,10 +96,10 @@ convert_source() {
 }
 
 describe() {
-  local name=$1 title=$2 url=$3
-  python3 - "$name" "$title" "$url" "$MAX_RULES" <<'PY'
+  local name=$1 title=$2 url=$3 version=${4:-}
+  python3 - "$name" "$title" "$url" "$MAX_RULES" "$version" <<'PY'
 import hashlib, json, os, sys
-name, title, url, max_rules = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
+name, title, url, max_rules, version = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), sys.argv[5]
 path = f"dist/{name}.json"
 data = open(path, "rb").read()
 rules = json.loads(data)
@@ -107,6 +116,9 @@ entry = {
     "source": title,
     "sourceURL": url,
 }
+if version:
+    # When the filter list itself was last updated (YYYYMMDDHHMM).
+    entry["sourceVersion"] = int(version[:12])
 os.makedirs("work/entries", exist_ok=True)
 json.dump(entry, open(f"work/entries/{name}.json", "w"))
 print(f"{name}: {len(rules)} rules, {len(data)} bytes")
@@ -144,6 +156,7 @@ if not removed:
 open("sources/annoyances.txt", "w", encoding="utf-8").write("\n".join(kept) + "\n")
 print(f"annoyances: took out {removed} cookie list sections ({dropped} lines), kept {len(kept)} lines")
 PY2
+  if [ -f sources/annoyances.txt ]; then cp sources/fanboy-annoyance.txt.version sources/annoyances.txt.version; fi
 fi
 convert annoyances annoyances.txt "Fanboy's Annoyance List" "https://easylist.to/" keep optional
 
@@ -167,4 +180,24 @@ manifest = {
 }
 json.dump(manifest, open("dist/manifest.json", "w"), indent=2)
 print(f"manifest version {manifest['version']}")
+PY
+
+# Lists kept from an earlier build whose source is 3 days old or more: their
+# download has been failing for about that long. They're still published as
+# they are; the workflow fails afterwards, so GitHub emails about it.
+python3 - <<'PY'
+import datetime, json, os
+limit = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=int(os.environ.get("STALE_AFTER_DAYS", "3")))
+manifest = json.load(open("dist/manifest.json"))
+kept = set(open("work/kept.txt").read().split()) if os.path.exists("work/kept.txt") else set()
+stale = []
+for entry in manifest["lists"] + manifest.get("optionalLists", []):
+    version = str(entry.get("sourceVersion") or "")
+    if entry["name"] in kept and version:
+        updated = datetime.datetime.strptime(version[:12], "%Y%m%d%H%M").replace(tzinfo=datetime.timezone.utc)
+        if updated < limit:
+            stale.append(f"{entry['name']} (last updated {updated:%d %b})")
+open("work/stale.txt", "w").write(", ".join(stale))
+if stale:
+    print("::warning::Not updated for 3 days or more: " + ", ".join(stale))
 PY
