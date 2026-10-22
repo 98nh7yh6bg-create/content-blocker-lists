@@ -23,6 +23,11 @@ fetch() {
     fi
     local version
     version=$(grep -m 1 -i '^! Version:' "sources/$file.tmp" | tr -dc '0-9')
+    # The cookie list has no version line, only the time it last changed
+    # (`! Last modified: 2026-10-22 09:50 UTC`), which reads the same way.
+    if [ -z "$version" ]; then
+      version=$(grep -m 1 -i '^! Last modified:' "sources/$file.tmp" | tr -dc '0-9')
+    fi
     if [ "${version:0:12}" \< "$oldest" ]; then
       echo "::warning::$file: the copy at $url is out of date (version ${version:-unknown})"
       continue

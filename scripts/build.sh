@@ -39,7 +39,31 @@ convert() {
   else
     convert_source "$name" "$source" "$generic"
   fi
+  # Also on a kept copy, so the change reaches lists whose source is down.
+  if [ "$generic" = keep ]; then main_page_only "$name"; fi
   describe "$name" "$title" "$url"
+}
+
+# Site-wide hiding rules apply to the main page only. Checked in every frame
+# too, their thousands of selectors cost each embedded ad, video and comment
+# box some styling time (about 5% in Speedometer, which runs its tests in
+# frames), while banners almost always sit on the main page.
+main_page_only() {
+  python3 - "dist/$1.json" <<'PY'
+import json, sys
+path = sys.argv[1]
+rules = json.load(open(path))
+scoped = 0
+for rule in rules:
+    trigger = rule["trigger"]
+    if rule["action"]["type"] == "css-display-none" and not any(
+        key in trigger for key in ("if-domain", "if-top-url", "if-frame-url", "load-context")
+    ):
+        trigger["load-context"] = ["top-frame"]
+        scoped += 1
+json.dump(rules, open(path, "w"), separators=(",", ":"))
+print(f"{path}: {scoped} site-wide hiding rules on the main page only")
+PY
 }
 
 convert_source() {
@@ -60,28 +84,6 @@ convert_source() {
     --safari-version "$SAFARI_VERSION" \
     --input-path "work/$name.txt" \
     --safari-rules-json-path "dist/$name.json" >/dev/null
-
-  if [ "$generic" = keep ]; then
-    # Site-wide hiding rules apply to the main page only. Checked in every
-    # frame too, their thousands of selectors cost each embedded ad, video
-    # and comment box some styling time (about 5% in Speedometer, which runs
-    # its tests in frames), while banners almost always sit on the main page.
-    python3 - "dist/$name.json" <<'PY'
-import json, sys
-path = sys.argv[1]
-rules = json.load(open(path))
-scoped = 0
-for rule in rules:
-    trigger = rule["trigger"]
-    if rule["action"]["type"] == "css-display-none" and not any(
-        key in trigger for key in ("if-domain", "if-top-url", "if-frame-url", "load-context")
-    ):
-        trigger["load-context"] = ["top-frame"]
-        scoped += 1
-json.dump(rules, open(path, "w"), separators=(",", ":"))
-print(f"{path}: {scoped} site-wide hiding rules on the main page only")
-PY
-  fi
 }
 
 describe() {
@@ -118,18 +120,20 @@ convert cookies easylist-cookie.txt "EasyList Cookie List" "https://easylist.to/
 # Fanboy's Annoyance List (newsletter and "open in app" pop-ups, chat and
 # notification prompts, social widgets) also bundles the cookie list. Those
 # sections are taken out, so the app's cookie switch still decides them. Each
-# bundled file starts with a `! *** easylist:<path> ***` line; if none of
-# them name the cookie list, the format changed and the list is left out
-# (keeping the last published copy) rather than published with cookie rules.
+# bundled file starts with a line naming it (`! easylist_cookie_general_hide.txt`,
+# or `! *** easylist:easylist_cookie/general_hide.txt ***` before October
+# 2026); if none of them name the cookie list, the format changed and the
+# list is left out (keeping the last published copy) rather than published
+# with cookie rules.
 if [ -f sources/fanboy-annoyance.txt ]; then
   python3 - <<'PY2' || rm -f sources/annoyances.txt
 import re, sys
-marker = re.compile(r"^! \*\*\* (\S+) \*\*\*$")
+marker = re.compile(r"^! (?:\*\*\* (\S+) \*\*\*|([\w./-]+\.txt))$")
 kept, skipping, removed, dropped = [], False, 0, 0
 for line in open("sources/fanboy-annoyance.txt", encoding="utf-8").read().splitlines():
     match = marker.match(line)
     if match:
-        skipping = "easylist_cookie/" in match.group(1)
+        skipping = "easylist_cookie" in (match.group(1) or match.group(2))
         removed += skipping
     if skipping:
         dropped += 1
