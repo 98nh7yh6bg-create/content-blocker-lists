@@ -6,7 +6,8 @@
 # with no domain) are dropped: they apply thousands of selectors to every
 # page, which slows styling and breaks more pages than it fixes. Network rules
 # and site-specific hiding (`example.com##selector`) are kept. The cookie list
-# keeps its generic rules, since that's how it finds banners on any site.
+# keeps its generic rules, since that's how it finds banners on any site, but
+# only on the main page (see `convert_source`).
 #
 # Optional lists (only annoyances so far) go under `optionalLists` in the
 # manifest. Apps that predate them only read `lists`, so they don't pick up
@@ -59,6 +60,28 @@ convert_source() {
     --safari-version "$SAFARI_VERSION" \
     --input-path "work/$name.txt" \
     --safari-rules-json-path "dist/$name.json" >/dev/null
+
+  if [ "$generic" = keep ]; then
+    # Site-wide hiding rules apply to the main page only. Checked in every
+    # frame too, their thousands of selectors cost each embedded ad, video
+    # and comment box some styling time (about 5% in Speedometer, which runs
+    # its tests in frames), while banners almost always sit on the main page.
+    python3 - "dist/$name.json" <<'PY'
+import json, sys
+path = sys.argv[1]
+rules = json.load(open(path))
+scoped = 0
+for rule in rules:
+    trigger = rule["trigger"]
+    if rule["action"]["type"] == "css-display-none" and not any(
+        key in trigger for key in ("if-domain", "if-top-url", "if-frame-url", "load-context")
+    ):
+        trigger["load-context"] = ["top-frame"]
+        scoped += 1
+json.dump(rules, open(path, "w"), separators=(",", ":"))
+print(f"{path}: {scoped} site-wide hiding rules on the main page only")
+PY
+  fi
 }
 
 describe() {
