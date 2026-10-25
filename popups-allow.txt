@@ -1,0 +1,9 @@
+# Sites kept off the pop-up list (HaGeZi's Pop-Up Ads): real sites people
+# visit on purpose, which the list blocks whole. One domain per line; its
+# subdomains go too. Found by checking the list against the 30,000 most
+# visited sites (Tranco), 25 Oct 2026.
+mybluehost.me      # Bluehost's addresses for customers' websites
+temporary.site     # hosting companies' addresses for new websites
+base.shop          # BASE, a Japanese shop platform (each store a subdomain)
+dynamic-dns.net    # a dynamic DNS service (home servers)
+kwai.com           # Kwai, a video app's website

@@ -171,11 +171,16 @@ import os
 easylist = set()
 if os.path.exists("sources/easylist.txt"):
     easylist = {line.strip() for line in open("sources/easylist.txt", encoding="utf-8") if line.startswith("||")}
+# Real sites the list would block whole (popups-allow.txt), with their subdomains.
+allowed = {line.split("#")[0].strip() for line in open("popups-allow.txt", encoding="utf-8")} - {""}
+def is_allowed(rule):
+    host = rule[2:].split("^")[0]
+    return any(host == site or host.endswith("." + site) for site in allowed)
 lines = open("sources/hagezi-popupads.txt", encoding="utf-8").read().splitlines()
 domains = [line for line in lines if line.startswith("||")]
-kept = [line for line in domains if line not in easylist]
+kept = [line for line in domains if line not in easylist and not is_allowed(line)]
 open("sources/popups.txt", "w", encoding="utf-8").write("\n".join([lines[0]] + kept) + "\n")
-print(f"popups: {len(kept)} of {len(domains)} domains, the rest already in EasyList")
+print(f"popups: {len(kept)} of {len(domains)} domains (the rest already in EasyList, or in popups-allow.txt)")
 PY
   cp sources/hagezi-popupads.txt.version sources/popups.txt.version
 fi

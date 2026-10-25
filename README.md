@@ -41,7 +41,8 @@ list's SHA-256 against the manifest, before using anything.
 ## When a site breaks
 
 Add an exception to `unbreak.txt` and push; it goes live on the next run (run
-the workflow by hand to publish right away).
+the workflow by hand to publish right away). A real site the pop-ups list
+blocks whole goes in `popups-allow.txt` instead (it only affects that list).
 
 ## Safety checks
 
