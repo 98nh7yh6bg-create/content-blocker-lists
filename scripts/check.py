@@ -56,8 +56,14 @@ def published_manifest():
             ["gh", "release", "download", tag, "--pattern", "manifest.json", "--output", "-"],
             check=True, capture_output=True, text=True,
         ).stdout
+        files = subprocess.run(
+            ["gh", "release", "view", tag, "--json", "assets", "--jq", ".assets[].name"],
+            check=True, capture_output=True, text=True,
+        ).stdout.split()
         print(f"Comparing with {tag}.")
-        return json.loads(data)
+        manifest = json.loads(data)
+        manifest["_files"] = files
+        return manifest
     except (subprocess.CalledProcessError, json.JSONDecodeError) as error:
         sys.exit(f"Couldn't read the last published manifest: {getattr(error, 'stderr', '') or error}")
 
@@ -97,7 +103,10 @@ def main():
 
     if previous:
         before = {entry["name"]: entry for entry in previous.get("lists", []) + previous.get("optionalLists", [])}
-        if len(lists) == len(before) and all(e["sha256"] == before.get(e["name"], {}).get("sha256") for e in lists):
+        # A list the last build named but didn't publish (popups.json on
+        # 25 Oct) gets published, even unchanged.
+        published = all(e["file"] in previous["_files"] for e in lists)
+        if published and len(lists) == len(before) and all(e["sha256"] == before.get(e["name"], {}).get("sha256") for e in lists):
             print("Lists unchanged; nothing to publish.")
             return
         for entry in lists:

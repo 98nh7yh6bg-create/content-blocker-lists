@@ -13,8 +13,8 @@ print("\n".join("- {}: {:,} rules".format(l["source"], l["rules"]) for l in list
 PY
 )
 
-files=(dist/manifest.json dist/manifest.sig dist/ads.json dist/privacy.json dist/cookies.json)
-[ -f dist/annoyances.json ] && files+=(dist/annoyances.json)
+# The manifest, its signature and every list it names.
+files=(dist/manifest.sig dist/*.json)
 gh release create "lists-$version" "${files[@]}" \
   --title "Lists $version" \
   --notes "$summary"
