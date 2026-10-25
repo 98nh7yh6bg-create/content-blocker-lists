@@ -160,10 +160,31 @@ PY2
 fi
 convert annoyances annoyances.txt "Fanboy's Annoyance List" "https://easylist.to/" keep optional
 
+# HaGeZi's Pop-Up Ads: the ad networks behind pop-ups, pop-unders and fake
+# "I'm not a robot" boxes on streaming and download sites. They change
+# address faster than EasyList follows; this list keeps up. It's only
+# domains, which cost almost nothing per request. Those EasyList already
+# blocks are left out, to keep it light. Apps download it and don't bundle it.
+if [ -f sources/hagezi-popupads.txt ]; then
+  python3 - <<'PY'
+import os
+easylist = set()
+if os.path.exists("sources/easylist.txt"):
+    easylist = {line.strip() for line in open("sources/easylist.txt", encoding="utf-8") if line.startswith("||")}
+lines = open("sources/hagezi-popupads.txt", encoding="utf-8").read().splitlines()
+domains = [line for line in lines if line.startswith("||")]
+kept = [line for line in domains if line not in easylist]
+open("sources/popups.txt", "w", encoding="utf-8").write("\n".join([lines[0]] + kept) + "\n")
+print(f"popups: {len(kept)} of {len(domains)} domains, the rest already in EasyList")
+PY
+  cp sources/hagezi-popupads.txt.version sources/popups.txt.version
+fi
+convert popups popups.txt "HaGeZi's Pop-Up Ads" "https://github.com/hagezi/dns-blocklists"
+
 python3 - "${CONVERTER_VERSION:-unknown}" <<'PY'
 import datetime, json, os, sys
 now = datetime.datetime.now(datetime.timezone.utc)
-lists = [json.load(open(f"work/entries/{name}.json")) for name in ("ads", "privacy", "cookies")]
+lists = [json.load(open(f"work/entries/{name}.json")) for name in ("ads", "privacy", "cookies", "popups")]
 optional = [json.load(open(f"work/entries/{name}.json")) for name in ("annoyances",) if os.path.exists(f"work/entries/{name}.json")]
 manifest = {
     "format": 1,
@@ -173,7 +194,7 @@ manifest = {
     "checkEveryHours": 24,
     "generated": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
     "converter": sys.argv[1],
-    "license": "EasyList, EasyPrivacy and Fanboy's Annoyance List (CC BY-SA 3.0), EasyList Cookie List (CC BY 3.0); https://easylist.to/",
+    "license": "EasyList, EasyPrivacy and Fanboy's Annoyance List (CC BY-SA 3.0), EasyList Cookie List (CC BY 3.0); https://easylist.to/. HaGeZi's Pop-Up Ads (GPL-3.0); https://github.com/hagezi/dns-blocklists",
     "lists": lists,
     # Lists apps attach only when the user turns them on.
     "optionalLists": optional,
