@@ -55,6 +55,9 @@ fetch easylist-cookie.txt \
 fetch fanboy-annoyance.txt \
   https://secure.fanboy.co.nz/fanboy-annoyance.txt \
   https://easylist.to/easylist/fanboy-annoyance.txt
+fetch hagezi-popupads.txt \
+  https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/popupads.txt \
+  https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/adblock/popupads.txt
 
 if [ "$fetched" -eq 0 ]; then
   echo "::error::No filter list could be fetched."

@@ -2,7 +2,7 @@
 
 Daily WebKit content-blocker lists built from
 [EasyList, EasyPrivacy, the EasyList Cookie List and Fanboy's Annoyance List](https://easylist.to/),
-for a WebKit browser app.
+and [HaGeZi's Pop-Up Ads](https://github.com/hagezi/dns-blocklists), for a WebKit browser app.
 
 A daily GitHub Action downloads the filter lists, adds our own fixes from
 `unbreak.txt`, converts them with AdGuard's
@@ -22,6 +22,10 @@ Pull requests run the whole build as a dry run without publishing.
 - `ads.json` – EasyList as WebKit content-blocker JSON
 - `privacy.json` – EasyPrivacy as WebKit content-blocker JSON
 - `cookies.json` – EasyList Cookie List (hides cookie consent banners)
+- `popups.json` – [HaGeZi's Pop-Up Ads](https://github.com/hagezi/dns-blocklists)
+  (the networks behind pop-ups, pop-unders and fake "I'm not a robot" boxes),
+  without the domains EasyList already blocks. Apps download it; they don't
+  bundle it.
 - `annoyances.json` – Fanboy's Annoyance List without its copy of the cookie
   list (newsletter and "open in app" pop-ups, chat and notification prompts,
   social widgets). Listed under `optionalLists`, which apps only use when the
@@ -68,4 +72,5 @@ The lists are derived from EasyList and EasyPrivacy, available under the same
 terms: [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) (EasyList
 is dual licensed with GPLv3). The annoyances list is derived from Fanboy's Annoyance
 List, under the same terms as EasyList. The cookie list is derived from the EasyList Cookie
-List, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The build scripts are MIT licensed.
+List, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The pop-ups list is derived from
+HaGeZi's Pop-Up Ads, [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html). The build scripts are MIT licensed.
