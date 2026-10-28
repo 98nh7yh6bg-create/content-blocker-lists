@@ -204,6 +204,10 @@ manifest = {
     # Lists apps attach only when the user turns them on.
     "optionalLists": optional,
 }
+# The build the App Store has, from app-store.json: Lens's TestFlight copies
+# ask testers to move over once it has caught up with theirs.
+if os.path.exists("app-store.json"):
+    manifest["appStore"] = {"build": int(json.load(open("app-store.json"))["build"])}
 json.dump(manifest, open("dist/manifest.json", "w"), indent=2)
 print(f"manifest version {manifest['version']}")
 PY

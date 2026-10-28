@@ -75,3 +75,7 @@ is dual licensed with GPLv3). The annoyances list is derived from Fanboy's Annoy
 List, under the same terms as EasyList. The cookie list is derived from the EasyList Cookie
 List, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The pop-ups list is derived from
 HaGeZi's Pop-Up Ads, [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html). The build scripts are MIT licensed.
+
+## The App Store's build (for Lens's TestFlight testers)
+
+`app-store.json` (`{"build": 18}`) names the newest Lens build on the App Store. The manifest carries it as `appStore.build`, signed with the rest, and Lens's TestFlight copies ask their testers to move to the App Store once it has caught up with their build. Update it when a version is released; without the file, the field is left out and nobody is asked.
