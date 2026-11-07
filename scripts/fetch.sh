@@ -58,6 +58,9 @@ fetch fanboy-annoyance.txt \
 fetch hagezi-popupads.txt \
   https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/popupads.txt \
   https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/adblock/popupads.txt
+fetch hagezi-nsfw.txt \
+  https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/nsfw.txt \
+  https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/adblock/nsfw.txt
 
 if [ "$fetched" -eq 0 ]; then
   echo "::error::No filter list could be fetched."

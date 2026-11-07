@@ -10,6 +10,8 @@ import json
 manifest = json.load(open("dist/manifest.json"))
 lists = manifest["lists"] + manifest.get("optionalLists", [])
 print("\n".join("- {}: {:,} rules".format(l["source"], l["rules"]) for l in lists))
+for l in manifest.get("domainLists", []):
+    print("- {}: {:,} domains".format(l["source"], l["rules"]))
 PY
 )
 

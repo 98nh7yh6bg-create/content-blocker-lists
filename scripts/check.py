@@ -4,7 +4,8 @@ Sets PUBLISH=true in $GITHUB_ENV when the lists changed and look sane.
 Fails the job when they don't, unless FORCE is set:
 
 - a list's rule count moved more than 20% since the last published build, or
-- a rule would block the main page of a major site.
+- a rule would block the main page of a major site, or
+- the adult list names a major site (it would leave history).
 """
 import json
 import os
@@ -68,6 +69,22 @@ def published_manifest():
         sys.exit(f"Couldn't read the last published manifest: {getattr(error, 'stderr', '') or error}")
 
 
+# Everyday sites the adult list must never name, besides MUST_LOAD's.
+NOT_ADULT = ["tumblr.com", "t.me", "discord.com", "twitch.tv", "patreon.com", "imgur.com",
+             "deviantart.com", "pixiv.net", "vimeo.com", "dailymotion.com", "tiktok.com"]
+
+
+def names_major_site(domains):
+    """A major site a domain list names, itself or a parent of it."""
+    listed = set(domains)
+    for host in [url.split("/")[2] for url in MUST_LOAD] + NOT_ADULT:
+        labels = host.split(".")
+        for i in range(len(labels) - 1):
+            if ".".join(labels[i:]) in listed:
+                return host
+    return None
+
+
 def blocks_main_page(rule):
     """Whether a rule blocks a top-level page of a MUST_LOAD site."""
     action, trigger = rule.get("action", {}), rule.get("trigger", {})
@@ -97,12 +114,13 @@ def blocks_main_page(rule):
 
 def main():
     manifest = json.load(open("dist/manifest.json"))
-    lists = manifest["lists"] + manifest.get("optionalLists", [])
+    rule_lists = manifest["lists"] + manifest.get("optionalLists", [])
+    lists = rule_lists + manifest.get("domainLists", [])
     previous = published_manifest()
     problems = []
 
     if previous:
-        before = {entry["name"]: entry for entry in previous.get("lists", []) + previous.get("optionalLists", [])}
+        before = {entry["name"]: entry for entry in previous.get("lists", []) + previous.get("optionalLists", []) + previous.get("domainLists", [])}
         # A list the last build named but didn't publish (popups.json on
         # 25 Oct) gets published, even unchanged.
         published = all(e["file"] in previous["_files"] for e in lists)
@@ -118,7 +136,12 @@ def main():
             if abs(change) > MAX_CHANGE:
                 problems.append(f"{entry['name']} changed by {change:+.0%} ({old['rules']} -> {entry['rules']})")
 
-    for entry in lists:
+    for entry in manifest.get("domainLists", []):
+        site = names_major_site(json.load(open(f"dist/{entry['file']}")))
+        if site:
+            problems.append(f"{entry['name']} names {site}")
+
+    for entry in rule_lists:
         rules = json.load(open(f"dist/{entry['file']}"))
         for rule in rules:
             url = blocks_main_page(rule)

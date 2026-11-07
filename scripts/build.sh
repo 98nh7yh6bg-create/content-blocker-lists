@@ -12,6 +12,10 @@
 # Optional lists (only annoyances so far) go under `optionalLists` in the
 # manifest. Apps that predate them only read `lists`, so they don't pick up
 # lists they have no switch for.
+#
+# Domain lists (only adult sites so far) aren't content blockers: each is a
+# sorted JSON array of domains, under `domainLists`, which older apps don't
+# read either.
 set -euo pipefail
 
 SAFARI_VERSION=26
@@ -19,7 +23,7 @@ MAX_RULES=150000
 mkdir -p dist work
 
 convert() {
-  local name=$1 source=$2 title=$3 url=$4 generic=${5:-drop} optional=${6:-}
+  local name=$1 source=$2 title=$3 url=$4 generic=${5:-drop} optional=${6:-} kind=${7:-rules}
   local version=""
   if [ ! -f "sources/$source" ]; then
     # fetch.sh couldn't download this list; keep the last published copy,
@@ -34,7 +38,7 @@ convert() {
       version=$(gh release download "$tag" --pattern manifest.json --output - | python3 -c '
 import json, sys
 manifest = json.load(sys.stdin)
-entry = next((e for e in manifest["lists"] + manifest.get("optionalLists", []) if e["name"] == sys.argv[1]), {})
+entry = next((e for e in manifest["lists"] + manifest.get("optionalLists", []) + manifest.get("domainLists", []) if e["name"] == sys.argv[1]), {})
 print(entry.get("sourceVersion") or manifest["version"])' "$name") || version=""
       echo "$name" >> work/kept.txt
     elif [ -n "$optional" ]; then
@@ -44,13 +48,35 @@ print(entry.get("sourceVersion") or manifest["version"])' "$name") || version=""
       echo "::error::$name: no fresh source and no published copy to keep"
       exit 1
     fi
+  elif [ "$kind" = domains ]; then
+    domains_source "$name" "$source"
+    version=$(cat "sources/$source.version" 2>/dev/null || true)
   else
     convert_source "$name" "$source" "$generic"
     version=$(cat "sources/$source.version" 2>/dev/null || true)
   fi
   # Also on a kept copy, so the change reaches lists whose source is down.
   if [ "$generic" = keep ]; then main_page_only "$name"; fi
-  describe "$name" "$title" "$url" "$version"
+  # WebKit's rule limit doesn't apply to a domain list.
+  describe "$name" "$title" "$url" "$version" "$([ "$kind" = domains ] && echo 1000000 || echo "$MAX_RULES")"
+}
+
+# A domain list from an Adblock-style list of `||domain^` lines, without the
+# sites in `<name>-allow.txt` (and their subdomains).
+domains_source() {
+  python3 - "$1" "sources/$2" <<'PY2'
+import json, os, re, sys
+name, source = sys.argv[1], sys.argv[2]
+allow_file = f"{name}-allow.txt"
+allowed = set()
+if os.path.exists(allow_file):
+    allowed = {line.split("#")[0].strip() for line in open(allow_file, encoding="utf-8")} - {""}
+rule = re.compile(r"\|\|([a-z0-9.-]+)\^")
+found = {m.group(1).strip(".") for line in open(source, encoding="utf-8") if (m := rule.fullmatch(line.strip().lower()))}
+kept = sorted(d for d in found if d and not any(d == site or d.endswith("." + site) for site in allowed))
+json.dump(kept, open(f"dist/{name}.json", "w"), separators=(",", ":"))
+print(f"{name}: {len(kept)} of {len(found)} domains (the rest in {allow_file})")
+PY2
 }
 
 # Site-wide hiding rules apply to the main page only. Checked in every frame
@@ -96,8 +122,8 @@ convert_source() {
 }
 
 describe() {
-  local name=$1 title=$2 url=$3 version=${4:-}
-  python3 - "$name" "$title" "$url" "$MAX_RULES" "$version" <<'PY'
+  local name=$1 title=$2 url=$3 version=${4:-} max_rules=${5:-$MAX_RULES}
+  python3 - "$name" "$title" "$url" "$max_rules" "$version" <<'PY'
 import hashlib, json, os, sys
 name, title, url, max_rules, version = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), sys.argv[5]
 path = f"dist/{name}.json"
@@ -106,7 +132,7 @@ rules = json.loads(data)
 if not isinstance(rules, list) or not rules:
     sys.exit(f"{name}: converter produced no rules")
 if len(rules) > max_rules:
-    sys.exit(f"{name}: {len(rules)} rules is over WebKit's limit of {max_rules}")
+    sys.exit(f"{name}: {len(rules)} rules is over the limit of {max_rules}")
 entry = {
     "name": name,
     "file": f"{name}.json",
@@ -186,11 +212,17 @@ PY
 fi
 convert popups popups.txt "HaGeZi's Pop-Up Ads" "https://github.com/hagezi/dns-blocklists"
 
+# HaGeZi's NSFW: adult sites, which Lens can keep out of history (Settings ›
+# Privacy & Security). Its `rules` count is the number of domains. Apps
+# download it and don't bundle it (GPL-3.0).
+convert adult hagezi-nsfw.txt "HaGeZi's NSFW" "https://github.com/hagezi/dns-blocklists" drop optional domains
+
 python3 - "${CONVERTER_VERSION:-unknown}" <<'PY'
 import datetime, json, os, sys
 now = datetime.datetime.now(datetime.timezone.utc)
 lists = [json.load(open(f"work/entries/{name}.json")) for name in ("ads", "privacy", "cookies", "popups")]
 optional = [json.load(open(f"work/entries/{name}.json")) for name in ("annoyances",) if os.path.exists(f"work/entries/{name}.json")]
+domains = [json.load(open(f"work/entries/{name}.json")) for name in ("adult",) if os.path.exists(f"work/entries/{name}.json")]
 manifest = {
     "format": 1,
     # Identifies the build; rollbacks may put an older one live.
@@ -199,10 +231,12 @@ manifest = {
     "checkEveryHours": 24,
     "generated": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
     "converter": sys.argv[1],
-    "license": "EasyList, EasyPrivacy and Fanboy's Annoyance List (CC BY-SA 3.0), EasyList Cookie List (CC BY 3.0); https://easylist.to/. HaGeZi's Pop-Up Ads (GPL-3.0); https://github.com/hagezi/dns-blocklists",
+    "license": "EasyList, EasyPrivacy and Fanboy's Annoyance List (CC BY-SA 3.0), EasyList Cookie List (CC BY 3.0); https://easylist.to/. HaGeZi's Pop-Up Ads and NSFW (GPL-3.0); https://github.com/hagezi/dns-blocklists",
     "lists": lists,
     # Lists apps attach only when the user turns them on.
     "optionalLists": optional,
+    # Sorted domains, each counting for its subdomains: not content blockers.
+    "domainLists": domains,
 }
 # The build the App Store has, from app-store.json: Lens's TestFlight copies
 # ask testers to move over once it has caught up with theirs.
@@ -221,7 +255,7 @@ limit = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=i
 manifest = json.load(open("dist/manifest.json"))
 kept = set(open("work/kept.txt").read().split()) if os.path.exists("work/kept.txt") else set()
 stale = []
-for entry in manifest["lists"] + manifest.get("optionalLists", []):
+for entry in manifest["lists"] + manifest.get("optionalLists", []) + manifest.get("domainLists", []):
     version = str(entry.get("sourceVersion") or "")
     if entry["name"] in kept and version:
         updated = datetime.datetime.strptime(version[:12], "%Y%m%d%H%M").replace(tzinfo=datetime.timezone.utc)

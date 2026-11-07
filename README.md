@@ -2,7 +2,8 @@
 
 Daily WebKit content-blocker lists built from
 [EasyList, EasyPrivacy, the EasyList Cookie List and Fanboy's Annoyance List](https://easylist.to/),
-and [HaGeZi's Pop-Up Ads](https://github.com/hagezi/dns-blocklists), for a WebKit browser app.
+and [HaGeZi's Pop-Up Ads](https://github.com/hagezi/dns-blocklists), for a WebKit browser app,
+plus HaGeZi's NSFW as a plain list of adult sites the app keeps out of its history.
 
 A daily GitHub Action downloads the filter lists, adds our own fixes from
 `unbreak.txt`, converts them with AdGuard's
@@ -30,6 +31,12 @@ Pull requests run the whole build as a dry run without publishing.
   list (newsletter and "open in app" pop-ups, chat and notification prompts,
   social widgets). Listed under `optionalLists`, which apps only use when the
   user turns it on; older app builds read only `lists` and never see it.
+- `adult.json` – [HaGeZi's NSFW](https://github.com/hagezi/dns-blocklists)
+  as a sorted JSON array of domains (each counts for its subdomains), without
+  the everyday sites in `adult-allow.txt`. Not a content blocker: Lens checks
+  a site against it on the phone before saving a visit to history. Listed
+  under `domainLists` (its `rules` is the number of domains), which older
+  app builds don't read. Apps download it; they don't bundle it.
 - `manifest.json` – version, and each list's SHA-256, size and rule count
 - `manifest.sig` – Ed25519 signature of `manifest.json`
 
@@ -43,11 +50,13 @@ list's SHA-256 against the manifest, before using anything.
 Add an exception to `unbreak.txt` and push; it goes live on the next run (run
 the workflow by hand to publish right away). A real site the pop-ups list
 blocks whole goes in `popups-allow.txt` instead (it only affects that list).
+An everyday site on the adult list goes in `adult-allow.txt`.
 
 ## Safety checks
 
 A build isn't published if a list's rule count moves more than 20% from the last
-published build, or if any rule would block the main page of a major site. Run the
+published build, or if any rule would block the main page of a major site, or if the adult list
+names a major site. Run the
 workflow with **force** to publish anyway after checking.
 
 To undo a bad build, run the workflow with **rollback_to** set to an earlier
@@ -74,7 +83,7 @@ terms: [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) (EasyList
 is dual licensed with GPLv3). The annoyances list is derived from Fanboy's Annoyance
 List, under the same terms as EasyList. The cookie list is derived from the EasyList Cookie
 List, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The pop-ups list is derived from
-HaGeZi's Pop-Up Ads, [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html). The build scripts are MIT licensed.
+HaGeZi's Pop-Up Ads, and the adult list from HaGeZi's NSFW, [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html). The build scripts are MIT licensed.
 
 ## The App Store's build (for Lens's TestFlight testers)
 

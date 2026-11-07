@@ -1,0 +1,15 @@
+# Sites kept off the adult list (HaGeZi's NSFW), which Lens keeps out of
+# history: everyday sites the list counts whole, though most of what's on
+# them isn't adult. One domain per line; its subdomains go too. Found by
+# checking the list against Lens's 7,080 popular sites, 7 Nov 2026.
+t.me               # Telegram's links
+nicovideo.jp       # Niconico, a Japanese video site
+character.ai       # Character.AI, AI chat
+yanmaga.jp         # Young Magazine, a Japanese manga magazine
+weebcentral.com    # a manga reader
+mangakatana.com    # a manga reader
+scan-manga.com     # a French manga reader
+anime1.me          # an anime streaming site
+badoo.com          # dating apps, as Tinder, Bumble and Hinge (not on the list)
+okcupid.com
+grindr.com
