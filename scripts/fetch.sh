@@ -62,6 +62,32 @@ fetch hagezi-nsfw.txt \
   https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/nsfw.txt \
   https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/adblock/nsfw.txt
 
+# The parts of YouTube's data Lens takes out come from uBlock Origin's and
+# AdGuard's rules (scripts/youtube.py). These files don't start the way `fetch`
+# checks and carry no date of their own. All of them or none, so the last
+# published copy stays if one is down.
+fetch_youtube() {
+  local url
+  : > sources/youtube.txt.tmp
+  for url in \
+    https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/filters.txt \
+    https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/quick-fixes.txt \
+    https://filters.adtidy.org/extension/ublock/filters/2_without_easylist.txt; do
+    if ! curl -fsSL --retry 3 --retry-all-errors --connect-timeout 20 --max-time 120 "$url" >> sources/youtube.txt.tmp; then
+      echo "::warning::youtube.txt: couldn't fetch $url; keeping the last published copy"
+      rm -f sources/youtube.txt.tmp
+      return
+    fi
+    # A file may not end in a line break.
+    echo >> sources/youtube.txt.tmp
+  done
+  mv sources/youtube.txt.tmp sources/youtube.txt
+  date -u +%Y%m%d%H%M > sources/youtube.txt.version
+  echo "youtube.txt: fetched"
+  fetched=$((fetched + 1))
+}
+fetch_youtube
+
 if [ "$fetched" -eq 0 ]; then
   echo "::error::No filter list could be fetched."
   exit 1

@@ -1,0 +1,3 @@
+# Parts of YouTube's data to take out that uBlock Origin's and AdGuard's rules
+# don't name yet, one per line, as `playerResponse.adPlacements`. Goes live on
+# the next run (scripts/youtube.py).

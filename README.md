@@ -37,6 +37,14 @@ Pull requests run the whole build as a dry run without publishing.
   a site against it on the phone before saving a visit to history. Listed
   under `domainLists` (its `rules` is the number of domains), which older
   app builds don't read. Apps download it; they don't bundle it.
+- `youtube.json` – the parts of YouTube's data Lens takes out, as a JSON array
+  of names (`adPlacements`, `playerResponse.playerAds`...), from the YouTube rules
+  in [uBlock Origin's](https://github.com/uBlockOrigin/uAssets) and
+  [AdGuard's](https://github.com/AdguardTeam/AdguardFilters) lists, plus our own in
+  `youtube-own.txt`. Only names, never code: only rules for `m.youtube.com` that
+  name an ad's part, with no conditions (`scripts/youtube.py`). Listed under
+  `pageRules`, which older app builds don't read. Apps download it; they don't
+  bundle it.
 - `manifest.json` – version, and each list's SHA-256, size and rule count
 - `manifest.sig` – Ed25519 signature of `manifest.json`
 
@@ -83,7 +91,7 @@ terms: [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) (EasyList
 is dual licensed with GPLv3). The annoyances list is derived from Fanboy's Annoyance
 List, under the same terms as EasyList. The cookie list is derived from the EasyList Cookie
 List, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The pop-ups list is derived from
-HaGeZi's Pop-Up Ads, and the adult list from HaGeZi's NSFW, [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html). The build scripts are MIT licensed.
+HaGeZi's Pop-Up Ads, and the adult list from HaGeZi's NSFW, [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html). `youtube.json` is derived from uBlock Origin's and AdGuard's lists, GPL-3.0 too. The build scripts are MIT licensed.
 
 ## The App Store's build (for Lens's TestFlight testers)
 
