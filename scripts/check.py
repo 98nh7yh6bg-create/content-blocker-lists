@@ -115,12 +115,13 @@ def blocks_main_page(rule):
 def main():
     manifest = json.load(open("dist/manifest.json"))
     rule_lists = manifest["lists"] + manifest.get("optionalLists", [])
-    lists = rule_lists + manifest.get("domainLists", [])
+    page_rules = manifest.get("pageRules", [])
+    lists = rule_lists + manifest.get("domainLists", []) + page_rules
     previous = published_manifest()
     problems = []
 
     if previous:
-        before = {entry["name"]: entry for entry in previous.get("lists", []) + previous.get("optionalLists", []) + previous.get("domainLists", [])}
+        before = {entry["name"]: entry for entry in previous.get("lists", []) + previous.get("optionalLists", []) + previous.get("domainLists", []) + previous.get("pageRules", [])}
         # A list the last build named but didn't publish (popups.json on
         # 25 Oct) gets published, even unchanged.
         published = all(e["file"] in previous["_files"] for e in lists)
@@ -129,7 +130,8 @@ def main():
             return
         for entry in lists:
             old = before.get(entry["name"])
-            if not old or not old.get("rules"):
+            # A page rule list is a handful of names: a few more is 20%.
+            if not old or not old.get("rules") or entry in page_rules:
                 continue
             change = (entry["rules"] - old["rules"]) / old["rules"]
             print(f"{entry['name']}: {old['rules']} -> {entry['rules']} rules ({change:+.1%})")
