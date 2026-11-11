@@ -2,6 +2,7 @@
 
 Daily WebKit content-blocker lists built from
 [EasyList, EasyPrivacy, the EasyList Cookie List and Fanboy's Annoyance List](https://easylist.to/),
+a list for each of 13 languages' sites,
 and [HaGeZi's Pop-Up Ads](https://github.com/hagezi/dns-blocklists), for a WebKit browser app,
 plus HaGeZi's NSFW as a plain list of adult sites the app keeps out of its history.
 
@@ -45,6 +46,18 @@ Pull requests run the whole build as a dry run without publishing.
   name an ad's part, with no conditions (`scripts/youtube.py`). Listed under
   `pageRules`, which older app builds don't read. Apps download it; they don't
   bundle it.
+- `lang-ru.json`, `lang-de.json`… – a list for sites in one language, on top
+  of EasyList: [RU AdList](https://forums.lanik.us/viewforum.php?f=102) (also
+  Ukrainian, Belarusian, Kazakh and Uzbek sites), EasyList Germany, Italy,
+  Spanish, Portuguese, Dutch, Polish and [China](https://github.com/easylist/easylistchina),
+  [Liste FR](https://forums.lanik.us/viewforum.php?f=91),
+  [AdGuard's Japanese and Turkish filters](https://github.com/AdguardTeam/AdguardFilters),
+  [filterslists-KO](https://github.com/FilteringDev/filterslists-KO) and the
+  [Greek AdBlock Filter](https://github.com/kargig/greek-adblockplus-filter)
+  (it changes every few weeks, so it may be up to 120 days old). Converted like
+  EasyList, without generic hiding rules. Listed under `languageLists`, each
+  with its `languages` (ISO 639 codes) and `license`; apps download only those
+  for their phone's languages, and older app builds don't read the key.
 - `manifest.json` – version, and each list's SHA-256, size and rule count
 - `manifest.sig` – Ed25519 signature of `manifest.json`
 
