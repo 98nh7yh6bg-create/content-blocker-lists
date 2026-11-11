@@ -8,7 +8,7 @@ version=$(python3 -c 'import json; print(json.load(open("dist/manifest.json"))["
 summary=$(python3 - <<'PY'
 import json
 manifest = json.load(open("dist/manifest.json"))
-lists = manifest["lists"] + manifest.get("optionalLists", [])
+lists = manifest["lists"] + manifest.get("optionalLists", []) + manifest.get("languageLists", [])
 print("\n".join("- {}: {:,} rules".format(l["source"], l["rules"]) for l in lists))
 for l in manifest.get("domainLists", []):
     print("- {}: {:,} domains".format(l["source"], l["rules"]))

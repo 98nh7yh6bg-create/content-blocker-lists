@@ -11,23 +11,35 @@ fetched=0
 # A list older than this is treated as a failed download, since mirrors can
 # lag far behind.
 MAX_AGE_DAYS=7
-oldest=$(python3 -c "import datetime as d; print((d.datetime.now(d.timezone.utc) - d.timedelta(days=$MAX_AGE_DAYS)).strftime('%Y%m%d%H%M'))")
 
+# A list can allow more days by being fetched as `max_age=<days> fetch ...`
+# (the Greek list, updated by one person every few weeks).
 fetch() {
   local file=$1; shift
+  local oldest
+  oldest=$(python3 -c "import datetime as d; print((d.datetime.now(d.timezone.utc) - d.timedelta(days=${max_age:-$MAX_AGE_DAYS})).strftime('%Y%m%d%H%M'))")
   for url in "$@"; do
+    # AdGuard's lists start with `! Checksum:` rather than `[Adblock Plus`,
+    # and name themselves with `! Title:` as the others do.
     if ! curl -fsSL --retry 3 --retry-all-errors --connect-timeout 20 --max-time 120 -o "sources/$file.tmp" "$url" ||
-      ! head -n 1 "sources/$file.tmp" | grep -q '^\[Adblock Plus'; then
+      ! { head -n 1 "sources/$file.tmp" | grep -q '^\[Adblock Plus' || head -n 20 "sources/$file.tmp" | grep -q '^! Title:'; }; then
       echo "::warning::$file: couldn't fetch a filter list from $url"
       continue
     fi
     local version
-    version=$(grep -m 1 -i '^! Version:' "sources/$file.tmp" | tr -dc '0-9')
+    # AdGuard's lists give the time as `! TimeUpdated: 2026-11-11T13:08:41+00:00`;
+    # their `! Version:` is a release number (2.0.78.36).
+    version=$(grep -m 1 -i '^! TimeUpdated:' "sources/$file.tmp" | tr -dc '0-9')
+    if [ -z "$version" ]; then
+      version=$(grep -m 1 -i '^! Version:' "sources/$file.tmp" | tr -dc '0-9')
+    fi
     # The cookie list has no version line, only the time it last changed
     # (`! Last modified: 2026-10-22 09:50 UTC`), which reads the same way.
     if [ -z "$version" ]; then
       version=$(grep -m 1 -i '^! Last modified:' "sources/$file.tmp" | tr -dc '0-9')
     fi
+    # A day without a time (the Greek list's `2026102600`) reads as midnight.
+    if [ -n "$version" ]; then version=$(printf '%-12.12s' "$version" | tr ' ' 0); fi
     if [ "${version:0:12}" \< "$oldest" ]; then
       echo "::warning::$file: the copy at $url is out of date (version ${version:-unknown})"
       continue
@@ -61,6 +73,38 @@ fetch hagezi-popupads.txt \
 fetch hagezi-nsfw.txt \
   https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/nsfw.txt \
   https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/adblock/nsfw.txt
+
+# Each language's list, on top of EasyList, for sites in that language (build.sh
+# names the languages). Apps download only the ones for their phone's
+# languages.
+fetch lang-ru.txt \
+  https://easylist-downloads.adblockplus.org/advblock.txt
+fetch lang-de.txt \
+  https://easylist.to/easylistgermany/easylistgermany.txt \
+  https://easylist-downloads.adblockplus.org/easylistgermany.txt
+fetch lang-fr.txt \
+  https://easylist-downloads.adblockplus.org/liste_fr.txt
+fetch lang-it.txt \
+  https://easylist-downloads.adblockplus.org/easylistitaly.txt
+fetch lang-es.txt \
+  https://easylist-downloads.adblockplus.org/easylistspanish.txt
+fetch lang-pt.txt \
+  https://easylist-downloads.adblockplus.org/easylistportuguese.txt
+fetch lang-nl.txt \
+  https://easylist-downloads.adblockplus.org/easylistdutch.txt
+fetch lang-pl.txt \
+  https://easylist-downloads.adblockplus.org/easylistpolish.txt
+fetch lang-zh.txt \
+  https://easylist-downloads.adblockplus.org/easylistchina.txt
+# AdGuard's own versions for Safari.
+fetch lang-ja.txt \
+  https://filters.adtidy.org/extension/safari/filters/7.txt
+fetch lang-tr.txt \
+  https://filters.adtidy.org/extension/safari/filters/13.txt
+fetch lang-ko.txt \
+  https://filters.adtidy.org/extension/safari/filters/227.txt
+max_age=120 fetch lang-el.txt \
+  https://www.void.gr/kargig/void-gr-filters.txt
 
 # The parts of YouTube's data Lens takes out come from uBlock Origin's and
 # AdGuard's rules (scripts/youtube.py). These files don't start the way `fetch`

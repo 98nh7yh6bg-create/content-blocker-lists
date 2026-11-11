@@ -114,14 +114,14 @@ def blocks_main_page(rule):
 
 def main():
     manifest = json.load(open("dist/manifest.json"))
-    rule_lists = manifest["lists"] + manifest.get("optionalLists", [])
+    rule_lists = manifest["lists"] + manifest.get("optionalLists", []) + manifest.get("languageLists", [])
     page_rules = manifest.get("pageRules", [])
     lists = rule_lists + manifest.get("domainLists", []) + page_rules
     previous = published_manifest()
     problems = []
 
     if previous:
-        before = {entry["name"]: entry for entry in previous.get("lists", []) + previous.get("optionalLists", []) + previous.get("domainLists", []) + previous.get("pageRules", [])}
+        before = {entry["name"]: entry for entry in previous.get("lists", []) + previous.get("optionalLists", []) + previous.get("domainLists", []) + previous.get("pageRules", []) + previous.get("languageLists", [])}
         # A list the last build named but didn't publish (popups.json on
         # 25 Oct) gets published, even unchanged.
         published = all(e["file"] in previous["_files"] for e in lists)

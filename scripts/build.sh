@@ -19,6 +19,11 @@
 #
 # Page rules (only YouTube's so far) are names of data Lens takes out of a
 # page: under `pageRules`, which older apps don't read.
+#
+# Language lists (RU AdList, EasyList Germany...) block ads on sites in one
+# language, on top of EasyList: under `languageLists`, each with the languages
+# it's for. Apps download only the ones for their phone's languages; older
+# apps don't read the key.
 set -euo pipefail
 
 SAFARI_VERSION=26
@@ -41,7 +46,7 @@ convert() {
       version=$(gh release download "$tag" --pattern manifest.json --output - | python3 -c '
 import json, sys
 manifest = json.load(sys.stdin)
-entry = next((e for e in manifest["lists"] + manifest.get("optionalLists", []) + manifest.get("domainLists", []) + manifest.get("pageRules", []) if e["name"] == sys.argv[1]), {})
+entry = next((e for e in manifest["lists"] + manifest.get("optionalLists", []) + manifest.get("domainLists", []) + manifest.get("pageRules", []) + manifest.get("languageLists", []) if e["name"] == sys.argv[1]), {})
 print(entry.get("sourceVersion") or manifest["version"])' "$name") || version=""
       echo "$name" >> work/kept.txt
     elif [ -n "$optional" ]; then
@@ -218,6 +223,22 @@ PY
 fi
 convert popups popups.txt "HaGeZi's Pop-Up Ads" "https://github.com/hagezi/dns-blocklists"
 
+# Each language's list, like EasyList without its generic hiding rules. The
+# languages each is for are in the manifest step below (LANGUAGES).
+convert lang-ru lang-ru.txt "RU AdList" "https://forums.lanik.us/viewforum.php?f=102" drop optional
+convert lang-de lang-de.txt "EasyList Germany" "https://easylist.to/" drop optional
+convert lang-fr lang-fr.txt "Liste FR" "https://forums.lanik.us/viewforum.php?f=91" drop optional
+convert lang-it lang-it.txt "EasyList Italy" "https://easylist.to/" drop optional
+convert lang-es lang-es.txt "EasyList Spanish" "https://easylist.to/" drop optional
+convert lang-pt lang-pt.txt "EasyList Portuguese" "https://easylist.to/" drop optional
+convert lang-nl lang-nl.txt "EasyList Dutch" "https://easylist.to/" drop optional
+convert lang-pl lang-pl.txt "EasyList Polish" "https://easylist.to/" drop optional
+convert lang-zh lang-zh.txt "EasyList China" "https://github.com/easylist/easylistchina" drop optional
+convert lang-ja lang-ja.txt "AdGuard Japanese filter" "https://github.com/AdguardTeam/AdguardFilters" drop optional
+convert lang-tr lang-tr.txt "AdGuard Turkish filter" "https://github.com/AdguardTeam/AdguardFilters" drop optional
+convert lang-ko lang-ko.txt "filterslists-KO Classic" "https://github.com/FilteringDev/filterslists-KO" drop optional
+convert lang-el lang-el.txt "Greek AdBlock Filter" "https://github.com/kargig/greek-adblockplus-filter" drop optional
+
 # HaGeZi's NSFW: adult sites, which Lens can keep out of history (Settings ›
 # Privacy & Security). Its `rules` count is the number of domains. Apps
 # download it and don't bundle it (GPL-3.0).
@@ -237,6 +258,31 @@ lists = [json.load(open(f"work/entries/{name}.json")) for name in ("ads", "priva
 optional = [json.load(open(f"work/entries/{name}.json")) for name in ("annoyances",) if os.path.exists(f"work/entries/{name}.json")]
 domains = [json.load(open(f"work/entries/{name}.json")) for name in ("adult",) if os.path.exists(f"work/entries/{name}.json")]
 pages = [json.load(open(f"work/entries/{name}.json")) for name in ("youtube",) if os.path.exists(f"work/entries/{name}.json")]
+# The languages each language list is for (ISO 639 codes, as apps read the
+# phone's languages), and its licence, which apps show with its name. RU
+# AdList also covers Ukrainian, Belarusian, Kazakh and Uzbek sites.
+LANGUAGES = {
+    "lang-ru": (["ru", "uk", "be", "kk", "uz"], "CC BY 3.0"),
+    "lang-de": (["de"], "CC BY-SA 3.0"),
+    "lang-fr": (["fr"], "CC BY-SA 3.0"),
+    "lang-it": (["it"], "CC BY-SA 3.0"),
+    "lang-es": (["es"], "CC BY-SA 3.0"),
+    "lang-pt": (["pt"], "CC BY-SA 3.0"),
+    "lang-nl": (["nl"], "CC BY-SA 3.0"),
+    "lang-pl": (["pl"], "CC BY-SA 3.0"),
+    "lang-zh": (["zh"], "CC BY-SA 3.0"),
+    "lang-ja": (["ja"], "GPL-3.0"),
+    "lang-tr": (["tr"], "GPL-3.0"),
+    "lang-ko": (["ko"], "GPL-3.0"),
+    "lang-el": (["el"], "CC BY-SA 4.0"),
+}
+languages = []
+for name, (codes, licence) in LANGUAGES.items():
+    if os.path.exists(f"work/entries/{name}.json"):
+        entry = json.load(open(f"work/entries/{name}.json"))
+        entry["languages"] = codes
+        entry["license"] = licence
+        languages.append(entry)
 manifest = {
     "format": 1,
     # Identifies the build; rollbacks may put an older one live.
@@ -245,7 +291,7 @@ manifest = {
     "checkEveryHours": 24,
     "generated": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
     "converter": sys.argv[1],
-    "license": "EasyList, EasyPrivacy and Fanboy's Annoyance List (CC BY-SA 3.0), EasyList Cookie List (CC BY 3.0); https://easylist.to/. HaGeZi's Pop-Up Ads and NSFW (GPL-3.0); https://github.com/hagezi/dns-blocklists. uBlock Origin's and AdGuard's rules (GPL-3.0); https://github.com/uBlockOrigin/uAssets, https://github.com/AdguardTeam/AdguardFilters",
+    "license": "EasyList, EasyPrivacy and Fanboy's Annoyance List (CC BY-SA 3.0), EasyList Cookie List (CC BY 3.0); https://easylist.to/. HaGeZi's Pop-Up Ads and NSFW (GPL-3.0); https://github.com/hagezi/dns-blocklists. uBlock Origin's and AdGuard's rules (GPL-3.0); https://github.com/uBlockOrigin/uAssets, https://github.com/AdguardTeam/AdguardFilters. EasyList's language lists (CC BY-SA 3.0), RU AdList (CC BY 3.0), Liste FR (CC BY-SA 3.0), AdGuard Japanese and Turkish filters (GPL-3.0), filterslists-KO (GPL-3.0); https://github.com/FilteringDev/filterslists-KO. Greek AdBlock Filter (CC BY-SA 4.0); https://github.com/kargig/greek-adblockplus-filter",
     "lists": lists,
     # Lists apps attach only when the user turns them on.
     "optionalLists": optional,
@@ -253,6 +299,9 @@ manifest = {
     "domainLists": domains,
     # Names of data taken out of a page: not content blockers.
     "pageRules": pages,
+    # Content blockers for sites in one language: apps download those for
+    # their phone's languages (`languages`).
+    "languageLists": languages,
 }
 # The build the App Store has, from app-store.json: Lens's TestFlight copies
 # ask testers to move over once it has caught up with theirs.
@@ -271,7 +320,7 @@ limit = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=i
 manifest = json.load(open("dist/manifest.json"))
 kept = set(open("work/kept.txt").read().split()) if os.path.exists("work/kept.txt") else set()
 stale = []
-for entry in manifest["lists"] + manifest.get("optionalLists", []) + manifest.get("domainLists", []) + manifest.get("pageRules", []):
+for entry in manifest["lists"] + manifest.get("optionalLists", []) + manifest.get("domainLists", []) + manifest.get("pageRules", []) + manifest.get("languageLists", []):
     version = str(entry.get("sourceVersion") or "")
     if entry["name"] in kept and version:
         updated = datetime.datetime.strptime(version[:12], "%Y%m%d%H%M").replace(tzinfo=datetime.timezone.utc)
