@@ -7,3 +7,5 @@ temporary.site     # hosting companies' addresses for new websites
 base.shop          # BASE, a Japanese shop platform (each store a subdomain)
 dynamic-dns.net    # a dynamic DNS service (home servers)
 kwai.com           # Kwai, a video app's website
+us.com             # sells names like shop.us.com to unrelated sites; added upstream 18 Nov 2026
+us.org             # the same, for .us.org
