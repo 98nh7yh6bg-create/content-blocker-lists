@@ -61,6 +61,7 @@ jobs:
           swift --version
           git clone --quiet --depth 1 --branch "v$CONVERTER_VERSION" "$CONVERTER_REPO" converter-src
           test "$(git -C converter-src rev-parse HEAD)" = "$CONVERTER_COMMIT"
+          python3 scripts/patch-converter.py converter-src
           swift build --package-path converter-src -c release --product ConverterTool
           echo "CONVERTER=$(swift build --package-path converter-src -c release --show-bin-path)/ConverterTool" >> "$GITHUB_ENV"
 
