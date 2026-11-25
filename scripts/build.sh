@@ -291,7 +291,7 @@ manifest = {
     "checkEveryHours": 24,
     "generated": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
     "converter": sys.argv[1],
-    "license": "EasyList, EasyPrivacy and Fanboy's Annoyance List (CC BY-SA 3.0), EasyList Cookie List (CC BY 3.0); https://easylist.to/. HaGeZi's Pop-Up Ads and NSFW (GPL-3.0); https://github.com/hagezi/dns-blocklists. uBlock Origin's and AdGuard's rules (GPL-3.0); https://github.com/uBlockOrigin/uAssets, https://github.com/AdguardTeam/AdguardFilters. EasyList's language lists (CC BY-SA 3.0), RU AdList (CC BY 3.0), Liste FR (CC BY-SA 3.0), AdGuard Japanese and Turkish filters (GPL-3.0), filterslists-KO (GPL-3.0); https://github.com/FilteringDev/filterslists-KO. Greek AdBlock Filter (CC BY-SA 4.0); https://github.com/kargig/greek-adblockplus-filter",
+    "license": "EasyList and EasyPrivacy (CC BY-SA 3.0), Fanboy's Annoyance List and EasyList Cookie List (CC BY 3.0); https://easylist.to/. HaGeZi's Pop-Up Ads and NSFW (GPL-3.0); https://github.com/hagezi/dns-blocklists. uBlock Origin's and AdGuard's rules (GPL-3.0); https://github.com/uBlockOrigin/uAssets, https://github.com/AdguardTeam/AdguardFilters. EasyList's language lists (CC BY-SA 3.0), RU AdList (CC BY 3.0), Liste FR (CC BY-SA 3.0), AdGuard Japanese and Turkish filters (GPL-3.0), filterslists-KO (GPL-3.0); https://github.com/FilteringDev/filterslists-KO. Greek AdBlock Filter (CC BY-SA 4.0); https://github.com/kargig/greek-adblockplus-filter",
     "lists": lists,
     # Lists apps attach only when the user turns them on.
     "optionalLists": optional,

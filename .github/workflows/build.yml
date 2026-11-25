@@ -131,7 +131,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.retry.outputs.page_url }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -140,7 +140,17 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
+      # GitHub sometimes doesn't list the artifact just uploaded yet ("No
+      # artifacts named github-pages were found", 18, 19, 24 and 25 Nov), so
+      # that day's lists weren't published. One more try after a minute.
       - id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+      - name: Wait a minute before trying again
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 60
+      - id: retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
 
   # A list whose download has failed for 3 days or more (build.sh): fails the

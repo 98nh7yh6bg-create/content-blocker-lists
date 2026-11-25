@@ -102,8 +102,8 @@ key requires an app update with the new public key.
 The lists are derived from EasyList and EasyPrivacy, available under the same
 terms: [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) (EasyList
 is dual licensed with GPLv3). The annoyances list is derived from Fanboy's Annoyance
-List, under the same terms as EasyList. The cookie list is derived from the EasyList Cookie
-List, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The pop-ups list is derived from
+List and the cookie list from the EasyList Cookie List, both
+[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The pop-ups list is derived from
 HaGeZi's Pop-Up Ads, and the adult list from HaGeZi's NSFW, [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html). `youtube.json` is derived from uBlock Origin's and AdGuard's lists, GPL-3.0 too. The build scripts are MIT licensed.
 
 ## The App Store's build (for Lens's TestFlight testers)
