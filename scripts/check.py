@@ -3,7 +3,10 @@
 Sets PUBLISH=true in $GITHUB_ENV when the lists changed and look sane.
 Fails the job when they don't, unless FORCE is set:
 
-- a list's rule count moved more than 20% since the last published build, or
+- a list lost more than 20% of its rules since the last published build, or
+  more than doubled (growth alone is fine: build.sh caps every list at
+  WebKit's limit, and upstream lists do grow, HaGeZi's pop-ups by 28% on
+  18 Nov, which stopped two days' lists), or
 - a rule would block the main page of a major site, or
 - the adult list names a major site (it would leave history).
 """
@@ -14,7 +17,8 @@ import subprocess
 import sys
 
 FORCE = bool(os.environ.get("FORCE"))
-MAX_CHANGE = 0.20
+MAX_SHRINK = 0.20
+MAX_GROWTH = 1.00
 
 # Sites that must always load. A rule that blocks one of these pages outright
 # is almost certainly a mistake upstream.
@@ -135,7 +139,7 @@ def main():
                 continue
             change = (entry["rules"] - old["rules"]) / old["rules"]
             print(f"{entry['name']}: {old['rules']} -> {entry['rules']} rules ({change:+.1%})")
-            if abs(change) > MAX_CHANGE:
+            if change < -MAX_SHRINK or change > MAX_GROWTH:
                 problems.append(f"{entry['name']} changed by {change:+.0%} ({old['rules']} -> {entry['rules']})")
 
     for entry in manifest.get("domainLists", []):

@@ -35,7 +35,11 @@ env:
 
 jobs:
   build:
-    runs-on: macos-latest
+    # Linux, not macOS: GitHub's Mac machines are often all taken ("not
+    # acquired by Runner … even after multiple attempts", 25 Nov), and
+    # nothing here needs a Mac (Swift and OpenSSL are on Ubuntu's runners).
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     outputs:
       publish: ${{ steps.result.outputs.publish }}
       stale: ${{ steps.freshness.outputs.stale }}
@@ -54,8 +58,10 @@ jobs:
       - name: Build converter
         if: inputs.rollback_to == ''
         run: |
+          swift --version
           git clone --quiet --depth 1 --branch "v$CONVERTER_VERSION" "$CONVERTER_REPO" converter-src
           test "$(git -C converter-src rev-parse HEAD)" = "$CONVERTER_COMMIT"
+          python3 scripts/patch-converter.py converter-src
           swift build --package-path converter-src -c release --product ConverterTool
           echo "CONVERTER=$(swift build --package-path converter-src -c release --show-bin-path)/ConverterTool" >> "$GITHUB_ENV"
 
@@ -90,7 +96,7 @@ jobs:
         if: inputs.rollback_to == '' && env.PUBLISH == 'true'
         env:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-        run: swift scripts/sign.swift dist/manifest.json > dist/manifest.sig
+        run: scripts/sign.sh dist/manifest.json > dist/manifest.sig
 
       - name: Archive as a release
         if: inputs.rollback_to == '' && env.PUBLISH == 'true'
@@ -131,7 +137,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url || steps.retry.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.retry.outputs.page_url || steps.last.outputs.page_url }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -151,6 +157,13 @@ jobs:
         run: sleep 60
       - id: retry
         if: steps.deployment.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+      - name: Wait two more minutes before the last try
+        if: steps.deployment.outcome == 'failure' && steps.retry.outcome == 'failure'
+        run: sleep 120
+      - id: last
+        if: steps.deployment.outcome == 'failure' && steps.retry.outcome == 'failure'
         uses: actions/deploy-pages@v4
 
   # A list whose download has failed for 3 days or more (build.sh): fails the
