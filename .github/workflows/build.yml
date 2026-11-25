@@ -75,6 +75,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/build.sh
 
+      - name: Compare (temporary, pull request only)
+        if: github.event_name == 'pull_request' && inputs.rollback_to == ''
+        run: |
+          python3 - <<'PY2'
+          import glob, hashlib, json
+          for f in sorted(glob.glob("dist/*.json")):
+              if f.endswith("manifest.json"): continue
+              data = json.load(open(f))
+              items = data if isinstance(data, list) else [data]
+              canon = sorted(json.dumps(x, sort_keys=True, separators=(",", ":")) for x in items)
+              print("CANON", f.split("/")[-1], len(canon), hashlib.sha256("\n".join(canon).encode()).hexdigest()[:16])
+          PY2
+
       - name: Freshness
         id: freshness
         if: inputs.rollback_to == ''
